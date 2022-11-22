@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-22 14:52:54 (Marcel Arpogaus)
+# changed : 2022-11-22 15:57:49 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -40,13 +40,11 @@ def write_data(format, data, path, **kwds):
     if isinstance(data, list):
         logging.debug("data is list")
         for i, d in tqdm(enumerate(data)):
-            write_data(format, d, os.path.join(dirname, path.format(item=i)))
+            write_data(format, d, path.format(item=i))
     if isinstance(data, dict):
         logging.debug("arg is dict")
-        d = {}
         for k, v in tqdm(data.items()):
-            write_data(format, v, os.path.join(dirname, path.format(key=k)))
-        return d
+            write_data(format, v, path.format(key=k))
     else:
         fn = DATA_WRITE_FUNCTIONS[format]
         logging.debug(f"saving data to {path} as {format}")

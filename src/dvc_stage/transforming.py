@@ -97,14 +97,18 @@ def split(
     :returns:
 
     """
-    if by == "id":
-        left_split, right_split = id_split(data, **kwds)
-    elif by == "date_time":
-        left_split, right_split = date_time_split(data, **kwds)
+    if data is None:
+        logging.debug("tracing split function")
+        return {left_split_name: None, right_split_name: None}
     else:
-        raise ValueError(f"invalid choice for split: {by}")
+        if by == "id":
+            left_split, right_split = id_split(data, **kwds)
+        elif by == "date_time":
+            left_split, right_split = date_time_split(data, **kwds)
+        else:
+            raise ValueError(f"invalid choice for split: {by}")
 
-    return {left_split_name: left_split, right_split_name: right_split}
+        return {left_split_name: left_split, right_split_name: right_split}
 
 
 def apply_transformation(name, arg, **kwds):
