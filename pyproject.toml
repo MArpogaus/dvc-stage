@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools >= 61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dvc-stage"
+description = ""
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "OSI Approved :: GNU General Public License v3 (GPLv3)"
+]
+dependencies = [
+    "pyyaml >= 5",
+    "dvc >= 2.12.*"
+]
+dynamic = ["version"]
+license = {text = "GPLv3"}
+
+[project.optional-dependencies]
+develop = [
+    'autoflake',
+    'black',
+    'isort',
+    'pre-commit',
+    'pytest',
+    'python-lsp-black',
+    'python-lsp-server[all]',
+]
+
+[project.scripts]
+dvc-stage = "dvc_stage.cli:cli"
+
+[tool.autoflake]
+check = true
+expand-star-imports = true
+remove-unused-variables = true
+ignore-init-module-imports = true
+remove-all-unused-imports = true
+
+[tool.isort]
+profile = "black"
+
+[tool.setuptools.dynamic]
+version = {attr = "dvc_stage.__version__"}
