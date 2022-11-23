@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-22 14:52:54 (Marcel Arpogaus)
+# changed : 2022-11-23 12:38:56 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -12,7 +12,7 @@
 ###############################################################################
 # REQUIRED MODULES ############################################################
 import logging
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -111,24 +111,46 @@ def split(
         return {left_split_name: left_split, right_split_name: right_split}
 
 
-def apply_transformation(name, arg, **kwds):
-    if isinstance(arg, list):
+def combine(data: List[pd.DataFrame]) -> pd.DataFrame:
+    if data is None:
+        return None
+    else:
+        df_combined = data[0]
+        for df in tqdm(data[1:]):
+            df_combined.append(df)
+        return df_combined
+
+
+def apply_transformation(name, arg, custom_transformation_functions, **kwds):
+    if isinstance(arg, list) and name != "combine":
         logging.debug("arg is list")
         l = []
         for a in tqdm(arg):
-            l.append(apply_transformation(name, a, **kwds))
+            l.append(
+                apply_transformation(
+                    name=name,
+                    arg=a,
+                    custom_transformation_functions=custom_transformation_functions,
+                    **kwds,
+                )
+            )
         return l
     if isinstance(arg, dict):
         logging.debug("arg is dict")
         d = {}
         for k, v in tqdm(arg.items()):
-            d[k] = apply_transformation(name, a, **kwds)
+            d[k] = apply_transformation(
+                name=name,
+                arg=a,
+                custom_transformation_functions=custom_transformation_functions,
+                **kwds,
+            )
         return d
     else:
         logging.debug(f"applying {name}")
-        fn = TRANSFORMATION_FUNCTIONS[name]
+        fn = custom_transformation_functions.get(name, TRANSFORMATION_FUNCTIONS[name])
         return fn(arg, **kwds)
 
 
 # GLOBAL VARIABLES ############################################################
-TRANSFORMATION_FUNCTIONS = {"split": split}
+TRANSFORMATION_FUNCTIONS = {"split": split, "combine": combine}
