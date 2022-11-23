@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "dvc-stage"
 description = ""
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.7.*"
 classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
@@ -14,8 +14,9 @@ classifiers = [
     "OSI Approved :: GNU General Public License v3 (GPLv3)"
 ]
 dependencies = [
+    "dvc >= 2.12.*",
+    "pandas >= 0.20.*",
     "pyyaml >= 5",
-    "dvc >= 2.12.*"
 ]
 dynamic = ["version"]
 license = {text = "GPLv3"}
