@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-24 15:27:02 (Marcel Arpogaus)
+# changed : 2022-11-29 10:47:10 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -14,6 +14,7 @@
 import glob
 import importlib
 import logging
+import os
 
 import dvc.api
 import yaml
@@ -58,22 +59,26 @@ def get_outs(data, path, **kwds):
 
 
 def get_deps(path):
-    return glob.glob(path)
+    deps = []
+    if isinstance(path, list):
+        for p in paths:
+            deps.append(get_deps(p))
+    elif "*" in path:
+        return list(set(map(os.path.dirname, glob.glob(path))))
+    else:
+        return [path]
 
 
-def trace_transformations(params, custom_transformation_functions):
+def trace_transformations(params):
     arg = None
 
     write = params.get("write", None)
     if write is not None:
         transformations = params.get("transformations", None)
         if transformations is not None:
-            it = tqdm(transformations.items())
-            for name, kwds in it:
+            for name, kwds in transformations.items():
                 logging.debug(f"tracing transformation function {name}")
-                arg = apply_transformation(
-                    name, arg, custom_transformation_functions, **kwds
-                )
+                arg = apply_transformation(name, arg, **kwds)
 
         outs = get_outs(data=arg, **params["write"])
         return outs
@@ -85,26 +90,19 @@ def get_dvc_config(stage):
     logging.debug(f"tracing dvc stage: {stage}")
     params = dvc.api.params_show()[stage]
     logging.debug(params)
-    if "custom_functions" in params.keys():
-        custom_functions = importlib.import_module(params["custom_functions"])
-    else:
-        custom_functions = {}
+    if "extra_modules" in params.keys():
+        load_extra_modules(params["extra_modules"])
 
     config = params.get("extra_stage_fields", {})
     config.update(
         {
-            "cmd": f"dvc-stage {stage}",
+            "cmd": f"dvc-stage run {stage}",
             "deps": get_deps(params["load"]["path"]),
             "params": list(flatten_dict(params, parent_key=stage).keys()),
             "meta": {"dvc-stage-version": dvc_stage.__version__},
         }
     )
-    outs = trace_transformations(
-        params,
-        custom_transformation_functions=getattr(
-            custom_functions, "TRANSFORMATION_FUNCTIONS", {}
-        ),
-    )
+    outs = trace_transformations(params)
     if outs is not None:
         config["outs"] = outs
     config = {"stages": {stage: config}}
@@ -116,9 +114,16 @@ def print_stage_config(stage):
     print(yaml.dump(config))
 
 
-def check_dvc_yaml(stage):
+def load_dvc_yaml():
+    logging.debug("loading dvc.yaml")
     with open("dvc.yaml", "r") as f:
-        dvc_yaml = yaml.safe_load(f)["stages"][stage]
+        dvc_yaml = yaml.safe_load(f)
+    logging.debug(dvc_yaml)
+    return dvc_yaml
+
+
+def check_dvc_yaml(stage):
+    dvc_yaml = load_dvc_yaml()["stages"][stage]
     logging.debug(f"dvc.yaml:\n{yaml.dump(dvc_yaml)}")
     config = get_dvc_config(stage)["stages"][stage]
     logging.debug(f"expected:\n{yaml.dump(config)}")
@@ -131,15 +136,12 @@ def validate_dvc_yaml(stage):
     assert check_dvc_yaml(stage), f"dvc.yaml for {stage} is invalid."
 
 
-def update_dvc_yaml(stage):
+def update_dvc_stage(stage):
     if check_dvc_yaml(stage):
-        logging.info("dvc.yaml is up to date")
+        logging.info(f"stage difinition of {stage} is up to date")
     else:
         logging.info("updating dvc.yaml")
-
-        with open("dvc.yaml", "r") as f:
-            dvc_yaml = yaml.safe_load(f)
-
+        dvc_yaml = load_dvc_yaml()
         config = get_dvc_config(stage)["stages"][stage]
 
         logging.info(f"before:\n{yaml.dump(dvc_yaml['stages'][stage])}")
@@ -157,19 +159,40 @@ def update_dvc_yaml(stage):
             exit(1)
 
 
+def update_dvc_yaml():
+    dvc_yaml = load_dvc_yaml()
+    for stage, definition in dvc_yaml["stages"].items():
+        if definition.get("cmd", "").startswith("dvc-stage"):
+            update_dvc_stage(stage)
+
+
+def load_extra_modules(extra_modules):
+    for module_name in extra_modules:
+        module = importlib.import_module(module_name)
+        dvc_stage.loading.DATA_LOAD_FUNCTIONS.update(
+            getattr(module, "DATA_LOAD_FUNCTIONS", {})
+        )
+        dvc_stage.transforming.TRANSFORMATION_FUNCTIONS.update(
+            getattr(module, "TRANSFORMATION_FUNCTIONS", {})
+        )
+        dvc_stage.validating.VALIDATION_FUNCTIONS.update(
+            getattr(module, "VALIDATION_FUNCTIONS", {})
+        )
+        dvc_stage.writing.DATA_WRITE_FUNCTIONS.update(
+            getattr(module, "DATA_WRITE_FUNCTIONS", {})
+        )
+
+
 def run_stage(stage, validate=True):
     if validate:
         validate_dvc_yaml(stage)
     params = dvc.api.params_show(stages=stage)[stage]
     logging.debug(params)
 
-    if "custom_functions" in params.keys():
-        custom_functions = importlib.import_module(params["custom_functions"])
-    else:
-        custom_functions = {}
+    if "extra_modules" in params.keys():
+        load_extra_modules(params["extra_modules"])
 
     arg = load_data(
-        custom_data_load_functions=getattr(custom_functions, "DATA_LOAD_FUNCTIONS", {}),
         **params["load"],
     )
 
@@ -184,9 +207,6 @@ def run_stage(stage, validate=True):
                 arg = apply_transformation(
                     name,
                     arg,
-                    custom_transformation_functions=getattr(
-                        custom_functions, "TRANSFORMATION_FUNCTIONS", {}
-                    ),
                     **kwds,
                 )
 
@@ -201,9 +221,6 @@ def run_stage(stage, validate=True):
                 arg = validate_data(
                     name,
                     arg,
-                    custom_validation_functions=getattr(
-                        custom_functions, "VALIDATION_FUNCTIONS", {}
-                    ),
                     **kwds,
                 )
 
@@ -211,8 +228,5 @@ def run_stage(stage, validate=True):
     if write is not None:
         arg = write_data(
             data=arg,
-            custom_data_write_functions=getattr(
-                custom_functions, "DATA_WRITE_FUNCTIONS", {}
-            ),
             **params["write"],
         )

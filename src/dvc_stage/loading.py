@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-23 12:40:52 (Marcel Arpogaus)
+# changed : 2022-11-25 13:38:05 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -39,7 +39,7 @@ def expand_if_glob(path):
         return path
 
 
-def load_data(format, path, custom_data_load_functions, **kwds):
+def load_data(format, path, **kwds):
     path = expand_if_glob(path)
     if isinstance(path, list):
         logging.debug("got a list of paths")
@@ -49,14 +49,11 @@ def load_data(format, path, custom_data_load_functions, **kwds):
                 load_data(
                     format=format,
                     path=p,
-                    custom_data_load_functions=custom_data_load_functions,
                 )
             )
         return data
     else:
-        return custom_data_load_functions.get(format, DATA_LOAD_FUNCTIONS[format])(
-            path, **kwds
-        )
+        return DATA_LOAD_FUNCTIONS[format](path, **kwds)
 
 
 # GLOBAL VARIABLES ############################################################

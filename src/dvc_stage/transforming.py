@@ -1,10 +1,10 @@
 # -*- time-stamp-pattern: "changed[\s]+:[\s]+%%$"; -*-
 # AUTHOR INFORMATION ##########################################################
-# file    : dvc_stage.py
+# file    : transforming.py
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
-# created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-23 12:38:56 (Marcel Arpogaus)
+# created : 2022-11-24 14:40:39 (Marcel Arpogaus)
+# changed : 2022-11-25 13:38:53 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -121,7 +121,7 @@ def combine(data: List[pd.DataFrame]) -> pd.DataFrame:
         return df_combined
 
 
-def apply_transformation(name, arg, custom_transformation_functions, **kwds):
+def apply_transformation(name, arg, **kwds):
     if isinstance(arg, list) and name != "combine":
         logging.debug("arg is list")
         l = []
@@ -130,7 +130,6 @@ def apply_transformation(name, arg, custom_transformation_functions, **kwds):
                 apply_transformation(
                     name=name,
                     arg=a,
-                    custom_transformation_functions=custom_transformation_functions,
                     **kwds,
                 )
             )
@@ -142,13 +141,12 @@ def apply_transformation(name, arg, custom_transformation_functions, **kwds):
             d[k] = apply_transformation(
                 name=name,
                 arg=a,
-                custom_transformation_functions=custom_transformation_functions,
                 **kwds,
             )
         return d
     else:
         logging.debug(f"applying {name}")
-        fn = custom_transformation_functions.get(name, TRANSFORMATION_FUNCTIONS[name])
+        fn = TRANSFORMATION_FUNCTIONS[name]
         return fn(arg, **kwds)
 
 
