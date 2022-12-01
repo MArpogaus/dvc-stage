@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-29 10:47:10 (Marcel Arpogaus)
+# changed : 2022-12-01 16:33:33 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -59,10 +59,11 @@ def get_outs(data, path, **kwds):
 
 
 def get_deps(path):
-    deps = []
     if isinstance(path, list):
-        for p in paths:
-            deps.append(get_deps(p))
+        deps = []
+        for p in path:
+            deps += get_deps(p)
+        return deps
     elif "*" in path:
         return list(set(map(os.path.dirname, glob.glob(path))))
     else:
@@ -126,6 +127,8 @@ def check_dvc_yaml(stage):
     dvc_yaml = load_dvc_yaml()["stages"][stage]
     logging.debug(f"dvc.yaml:\n{yaml.dump(dvc_yaml)}")
     config = get_dvc_config(stage)["stages"][stage]
+    if stage in dvc_yaml["cmd"]:
+        config["cmd"] = dvc_yaml["cmd"]
     logging.debug(f"expected:\n{yaml.dump(config)}")
 
     return dvc_yaml == config
@@ -138,11 +141,13 @@ def validate_dvc_yaml(stage):
 
 def update_dvc_stage(stage):
     if check_dvc_yaml(stage):
-        logging.info(f"stage difinition of {stage} is up to date")
+        logging.info(f"stage definition of {stage} is up to date")
     else:
         logging.info("updating dvc.yaml")
         dvc_yaml = load_dvc_yaml()
         config = get_dvc_config(stage)["stages"][stage]
+        if stage in dvc_yaml["stages"][stage]["cmd"]:
+            config["cmd"] = dvc_yaml["stages"][stage]["cmd"]
 
         logging.info(f"before:\n{yaml.dump(dvc_yaml['stages'][stage])}")
         logging.info(f"after update:\n{yaml.dump(config)}")
