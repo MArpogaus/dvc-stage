@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-23 14:56:48 (Marcel Arpogaus)
+# changed : 2022-11-24 15:27:02 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -23,6 +23,7 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 import dvc_stage
 from dvc_stage.loading import load_data
 from dvc_stage.transforming import apply_transformation
+from dvc_stage.validating import validate_data
 from dvc_stage.writing import write_data
 
 
@@ -63,12 +64,21 @@ def get_deps(path):
 def trace_transformations(params, custom_transformation_functions):
     arg = None
 
-    for name, kwds in params["transformations"].items():
-        logging.debug(f"tracing transformation function {name}")
-        arg = apply_transformation(name, arg, custom_transformation_functions, **kwds)
+    write = params.get("write", None)
+    if write is not None:
+        transformations = params.get("transformations", None)
+        if transformations is not None:
+            it = tqdm(transformations.items())
+            for name, kwds in it:
+                logging.debug(f"tracing transformation function {name}")
+                arg = apply_transformation(
+                    name, arg, custom_transformation_functions, **kwds
+                )
 
-    outs = get_outs(data=arg, **params["write"])
-    return outs
+        outs = get_outs(data=arg, **params["write"])
+        return outs
+    else:
+        return None
 
 
 def get_dvc_config(stage):
@@ -80,22 +90,24 @@ def get_dvc_config(stage):
     else:
         custom_functions = {}
 
-    config = {
-        "stages": {
-            stage: {
-                "cmd": f"dvc-stage {stage}",
-                "deps": get_deps(params["load"]["path"]),
-                "params": list(flatten_dict(params, parent_key=stage).keys()),
-                "outs": trace_transformations(
-                    params,
-                    custom_transformation_functions=getattr(
-                        custom_functions, "TRANSFORMATION_FUNCTIONS", {}
-                    ),
-                ),
-                "meta": {"dvc-stage-version": dvc_stage.__version__},
-            }
+    config = params.get("extra_stage_fields", {})
+    config.update(
+        {
+            "cmd": f"dvc-stage {stage}",
+            "deps": get_deps(params["load"]["path"]),
+            "params": list(flatten_dict(params, parent_key=stage).keys()),
+            "meta": {"dvc-stage-version": dvc_stage.__version__},
         }
-    }
+    )
+    outs = trace_transformations(
+        params,
+        custom_transformation_functions=getattr(
+            custom_functions, "TRANSFORMATION_FUNCTIONS", {}
+        ),
+    )
+    if outs is not None:
+        config["outs"] = outs
+    config = {"stages": {stage: config}}
     return config
 
 
@@ -161,22 +173,46 @@ def run_stage(stage, validate=True):
         **params["load"],
     )
 
-    it = tqdm(params["transformations"].items())
-    with logging_redirect_tqdm():
-        for name, kwds in it:
-            it.set_description(name)
-            arg = apply_transformation(
-                name,
-                arg,
-                custom_transformation_functions=getattr(
-                    custom_functions, "TRANSFORMATION_FUNCTIONS", {}
-                ),
-                **kwds,
-            )
-    arg = write_data(
-        data=arg,
-        custom_data_write_functions=getattr(
-            custom_functions, "DATA_WRITE_FUNCTIONS", {}
-        ),
-        **params["write"],
-    )
+    transformations = params.get("transformations", None)
+    if transformations is not None:
+        logging.debug("applying transformations")
+        logging.debug(transformations)
+        it = tqdm(transformations.items())
+        with logging_redirect_tqdm():
+            for name, kwds in it:
+                it.set_description(name)
+                arg = apply_transformation(
+                    name,
+                    arg,
+                    custom_transformation_functions=getattr(
+                        custom_functions, "TRANSFORMATION_FUNCTIONS", {}
+                    ),
+                    **kwds,
+                )
+
+    validations = params.get("validations", None)
+    if validations is not None:
+        logging.debug("applying validations")
+        logging.debug(validations)
+        it = tqdm(validations.items())
+        with logging_redirect_tqdm():
+            for name, kwds in it:
+                it.set_description(name)
+                arg = validate_data(
+                    name,
+                    arg,
+                    custom_validation_functions=getattr(
+                        custom_functions, "VALIDATION_FUNCTIONS", {}
+                    ),
+                    **kwds,
+                )
+
+    write = params.get("write", None)
+    if write is not None:
+        arg = write_data(
+            data=arg,
+            custom_data_write_functions=getattr(
+                custom_functions, "DATA_WRITE_FUNCTIONS", {}
+            ),
+            **params["write"],
+        )
