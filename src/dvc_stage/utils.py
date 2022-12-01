@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-29 10:47:10 (Marcel Arpogaus)
+# changed : 2022-12-01 11:34:15 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -126,6 +126,7 @@ def check_dvc_yaml(stage):
     dvc_yaml = load_dvc_yaml()["stages"][stage]
     logging.debug(f"dvc.yaml:\n{yaml.dump(dvc_yaml)}")
     config = get_dvc_config(stage)["stages"][stage]
+    config["cmd"] = dvc_yaml["cmd"]
     logging.debug(f"expected:\n{yaml.dump(config)}")
 
     return dvc_yaml == config
