@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2022-12-13 13:28:16 (Marcel Arpogaus)
+# changed : 2022-12-13 15:21:04 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -22,7 +22,7 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 # PRIVATE FUNCTIONS ###########################################################
 def _date_time_split(
-    data: pd.DataFrame, size: float, freq: str
+    data: pd.DataFrame, size: float, freq: str, date_time_col: str
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """split data along date time axis
 
@@ -34,13 +34,15 @@ def _date_time_split(
     :type size: float
     :pram freq: frequency to split on
     :type freq: str
+    :pram date_time_col: column containing the date time index
+    :type date_time_col: str
     :returns: Tuple[pd.DataFrame, pd.DataFrame]
 
     """
-    start_point = data.date_time.dt.date.min()
-    end_date = data.date_time.dt.date.max()
+    start_point = data[date_time_col].dt.date.min()
+    end_date = data[date_time_col].dt.date.max()
 
-    data.set_index("date_time", inplace=True)
+    data.set_index(date_time_col, inplace=True)
 
     # Reserve some data for testing
     periods = len(pd.period_range(start_point, end_date, freq=freq))
@@ -52,8 +54,8 @@ def _date_time_split(
 
     left_split_str = str(split_point - pd.offsets.Minute(30))
     right_split_str = str(split_point)
-    left_data = data.loc[:left_split_str]
-    right_data = data.loc[right_split_str:]
+    left_data = data.loc[:left_split_str].reset_index()
+    right_data = data.loc[right_split_str:].reset_index()
 
     return left_data, right_data
 
