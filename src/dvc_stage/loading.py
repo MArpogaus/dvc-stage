@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-25 13:38:05 (Marcel Arpogaus)
+# changed : 2022-12-13 14:58:14 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -13,13 +13,14 @@
 # REQUIRED MODULES ############################################################
 import glob
 import logging
+import os
 
 import pandas as pd
 from tqdm import tqdm
 
 
-# FUNCTION DEFINITIONS ########################################################
-def load_feather(path: str) -> pd.DataFrame:
+# PRIVATE FUNCTIONS ###########################################################
+def _load_feather(path: str) -> pd.DataFrame:
     """load data from feather file
 
     :param path: path to feather file
@@ -32,29 +33,49 @@ def load_feather(path: str) -> pd.DataFrame:
     return data
 
 
-def expand_if_glob(path):
-    if "*" in path:
-        return glob.glob(path)
+# PUBLIC FUNCTIONS ############################################################
+def get_deps(path):
+    deps = []
+    if isinstance(path, list):
+        for p in path:
+            deps += get_deps(p)
+        deps = list(sorted(set(deps)))
     else:
-        return path
+        deps = glob.glob(path)
+
+    assert (
+        len(deps) > 0
+    ), f'Dependencies not found for path "{path}".\nIs DVC Pipeline up to date?'
+    return deps
 
 
-def load_data(format, path, **kwds):
-    path = expand_if_glob(path)
+def load_data(format, path, as_dict=False, **kwds):
+    path = get_deps(path)
+    if len(path) == 1:
+        path = path[0]
     if isinstance(path, list):
         logging.debug("got a list of paths")
-        data = []
-        for p in tqdm(path):
-            data.append(
-                load_data(
+        if as_dict:
+            data = {}
+            for p in tqdm(path):
+                k = os.path.basename(p)
+                data[k] = load_data(
                     format=format,
                     path=p,
                 )
-            )
+        else:
+            data = []
+            for p in tqdm(path):
+                data.append(
+                    load_data(
+                        format=format,
+                        path=p,
+                    )
+                )
         return data
     else:
         return DATA_LOAD_FUNCTIONS[format](path, **kwds)
 
 
 # GLOBAL VARIABLES ############################################################
-DATA_LOAD_FUNCTIONS = {"feather": load_feather}
+DATA_LOAD_FUNCTIONS = {"feather": _load_feather}
