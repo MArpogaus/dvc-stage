@@ -38,16 +38,18 @@ example steps.
 :CUSTOM_ID: prerequisites
 :END:
 
-- A
-- B
+- =pandas>=0.20.*=
+- =dvc>=2.12.*=
+- =pyyaml>=5=
 
 *** Installation
-:PROPERTIES:
-:CUSTOM_ID: installation
-:END:
+    :PROPERTIES:
+    :CUSTOM_ID: installation
+    :END:
 
-1. Step
-2. Step
+#+begin_src bash
+pip install git+https://github.com/MArpogaus/dvc-stage.git
+#+end_src
 
 ** Usage
 :PROPERTIES:
