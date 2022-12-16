@@ -43,16 +43,16 @@ example steps.
 
 ### Prerequisites
 
--   A
--   B
+-   `pandas>=0.20.*`
+-   `dvc>=2.12.*`
+-   `pyyaml>=5`
 
 
 <a id="installation"></a>
 
 ### Installation
 
-1.  Step
-2.  Step
+    pip install git+https://github.com/MArpogaus/dvc-stage.git
 
 
 <a id="usage"></a>
@@ -83,4 +83,4 @@ Project Link:
 
 ## Acknowledgments
 
-&#x2026;
+Parts of this work have been funded by the Federal Ministry for the Environment, Nature Conservation and Nuclear Safety due to a decision of the German Federal Parliament (AI4Grids: 67KI2012A).

@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2022-11-25 13:38:53 (Marcel Arpogaus)
+# changed : 2022-12-15 15:04:55 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -17,11 +17,12 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 
-# FUNCTION DEFINITIONS ########################################################
-def date_time_split(
-    data: pd.DataFrame, size: float, freq: str
+# PRIVATE FUNCTIONS ###########################################################
+def _date_time_split(
+    data: pd.DataFrame, size: float, freq: str, date_time_col: str
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """split data along date time axis
 
@@ -33,13 +34,15 @@ def date_time_split(
     :type size: float
     :pram freq: frequency to split on
     :type freq: str
+    :pram date_time_col: column containing the date time index
+    :type date_time_col: str
     :returns: Tuple[pd.DataFrame, pd.DataFrame]
 
     """
-    start_point = data.date_time.dt.date.min()
-    end_date = data.date_time.dt.date.max()
+    start_point = data[date_time_col].dt.date.min()
+    end_date = data[date_time_col].dt.date.max()
 
-    data.set_index("date_time", inplace=True)
+    data.set_index(date_time_col, inplace=True)
 
     # Reserve some data for testing
     periods = len(pd.period_range(start_point, end_date, freq=freq))
@@ -51,13 +54,13 @@ def date_time_split(
 
     left_split_str = str(split_point - pd.offsets.Minute(30))
     right_split_str = str(split_point)
-    left_data = data.loc[:left_split_str]
-    right_data = data.loc[right_split_str:]
+    left_data = data.loc[:left_split_str].reset_index()
+    right_data = data.loc[right_split_str:].reset_index()
 
     return left_data, right_data
 
 
-def id_split(
+def _id_split(
     data: pd.DataFrame, size: float, seed: int, id_col: str
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """split data on a random set of ids
@@ -81,7 +84,7 @@ def id_split(
     return data[mask], data[~mask]
 
 
-def split(
+def _split(
     data: pd.DataFrame, by: str, left_split_name: str, right_split_name: str, **kwds
 ) -> Dict[str, pd.DataFrame]:
     """TODO describe function
@@ -102,16 +105,16 @@ def split(
         return {left_split_name: None, right_split_name: None}
     else:
         if by == "id":
-            left_split, right_split = id_split(data, **kwds)
+            left_split, right_split = _id_split(data, **kwds)
         elif by == "date_time":
-            left_split, right_split = date_time_split(data, **kwds)
+            left_split, right_split = _date_time_split(data, **kwds)
         else:
             raise ValueError(f"invalid choice for split: {by}")
 
         return {left_split_name: left_split, right_split_name: right_split}
 
 
-def combine(data: List[pd.DataFrame]) -> pd.DataFrame:
+def _combine(data: List[pd.DataFrame]) -> pd.DataFrame:
     if data is None:
         return None
     else:
@@ -121,34 +124,54 @@ def combine(data: List[pd.DataFrame]) -> pd.DataFrame:
         return df_combined
 
 
-def apply_transformation(name, arg, **kwds):
-    if isinstance(arg, list) and name != "combine":
+def _apply_transformation(data, name, **kwds):
+    if isinstance(data, list) and name != "combine":
         logging.debug("arg is list")
         l = []
-        for a in tqdm(arg):
+        for a in tqdm(data):
             l.append(
-                apply_transformation(
+                _apply_transformation(
+                    data=a,
                     name=name,
-                    arg=a,
                     **kwds,
                 )
             )
         return l
-    if isinstance(arg, dict):
+    if isinstance(data, dict):
         logging.debug("arg is dict")
         d = {}
-        for k, v in tqdm(arg.items()):
-            d[k] = apply_transformation(
+        for k, v in tqdm(data.items()):
+            d[k] = _apply_transformation(
+                data=v,
                 name=name,
-                arg=a,
                 **kwds,
             )
         return d
     else:
         logging.debug(f"applying {name}")
         fn = TRANSFORMATION_FUNCTIONS[name]
-        return fn(arg, **kwds)
+        return fn(data, **kwds)
+
+
+# PUBLIC FUNCTIONS ############################################################
+def apply_transformations(data, transformations):
+    logging.debug("applying transformations")
+    logging.debug(transformations)
+    it = tqdm(transformations.items())
+    with logging_redirect_tqdm():
+        for name, kwds in it:
+            it.set_description(name)
+            data = _apply_transformation(
+                data=data,
+                name=name,
+                **kwds,
+            )
+    return data
+
+
+def trace_transformations(transformations):
+    return apply_transformations(data=None, transformations=transformations)
 
 
 # GLOBAL VARIABLES ############################################################
-TRANSFORMATION_FUNCTIONS = {"split": split, "combine": combine}
+TRANSFORMATION_FUNCTIONS = {"split": _split, "combine": _combine}
