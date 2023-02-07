@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2022-12-15 15:04:55 (Marcel Arpogaus)
+# changed : 2023-02-07 16:11:26 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -127,26 +127,26 @@ def _combine(data: List[pd.DataFrame]) -> pd.DataFrame:
 def _apply_transformation(data, name, **kwds):
     if isinstance(data, list) and name != "combine":
         logging.debug("arg is list")
-        l = []
+        results_list = []
         for a in tqdm(data):
-            l.append(
+            results_list.append(
                 _apply_transformation(
                     data=a,
                     name=name,
                     **kwds,
                 )
             )
-        return l
+        return results_list
     if isinstance(data, dict):
         logging.debug("arg is dict")
-        d = {}
+        results_dict = {}
         for k, v in tqdm(data.items()):
-            d[k] = _apply_transformation(
+            results_dict[k] = _apply_transformation(
                 data=v,
                 name=name,
                 **kwds,
             )
-        return d
+        return results_dict
     else:
         logging.debug(f"applying {name}")
         fn = TRANSFORMATION_FUNCTIONS[name]
