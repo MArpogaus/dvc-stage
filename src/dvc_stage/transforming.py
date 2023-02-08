@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-07 16:11:26 (Marcel Arpogaus)
+# changed : 2023-02-08 12:18:45 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -115,13 +115,23 @@ def _split(
 
 
 def _combine(data: List[pd.DataFrame]) -> pd.DataFrame:
-    if data is None:
+    if data[0] is None:
         return None
     else:
         df_combined = data[0]
         for df in tqdm(data[1:]):
             df_combined.append(df)
         return df_combined
+
+
+def _get_transformation(data, name):
+    fn = TRANSFORMATION_FUNCTIONS.get(name)
+    if fn is None:
+        if hasattr(data, name):
+            fn = lambda _, **kwds: getattr(data, name)(**kwds)  # noqa E731
+        elif data is None and hasattr(pd.DataFrame, name):
+            fn = lambda _: None  # noqa E731
+    return fn
 
 
 def _apply_transformation(data, name, **kwds):
@@ -149,7 +159,7 @@ def _apply_transformation(data, name, **kwds):
         return results_dict
     else:
         logging.debug(f"applying {name}")
-        fn = TRANSFORMATION_FUNCTIONS[name]
+        fn = _get_transformation(data, name)
         return fn(data, **kwds)
 
 
@@ -167,10 +177,6 @@ def apply_transformations(data, transformations):
                 **kwds,
             )
     return data
-
-
-def trace_transformations(transformations):
-    return apply_transformations(data=None, transformations=transformations)
 
 
 # GLOBAL VARIABLES ############################################################
