@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-12-13 13:23:00 (Marcel Arpogaus)
+# changed : 2023-02-08 12:17:01 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -19,7 +19,7 @@ import yaml
 
 import dvc_stage
 from dvc_stage.loading import get_deps, load_data
-from dvc_stage.transforming import apply_transformations, trace_transformations
+from dvc_stage.transforming import apply_transformations
 from dvc_stage.validating import apply_validations
 from dvc_stage.writing import get_outs, write_data
 
@@ -39,17 +39,11 @@ def _flatten_dict(d, parent_key="", sep="."):
 def _load_extra_modules(extra_modules):
     for module_name in extra_modules:
         module = importlib.import_module(module_name)
-        dvc_stage.loading.DATA_LOAD_FUNCTIONS.update(
-            getattr(module, "DATA_LOAD_FUNCTIONS", {})
-        )
         dvc_stage.transforming.TRANSFORMATION_FUNCTIONS.update(
             getattr(module, "TRANSFORMATION_FUNCTIONS", {})
         )
         dvc_stage.validating.VALIDATION_FUNCTIONS.update(
             getattr(module, "VALIDATION_FUNCTIONS", {})
-        )
-        dvc_stage.writing.DATA_WRITE_FUNCTIONS.update(
-            getattr(module, "DATA_WRITE_FUNCTIONS", {})
         )
 
 
@@ -95,15 +89,24 @@ def _get_dvc_config(stage):
             "meta": {"dvc-stage-version": dvc_stage.__version__},
         }
     )
+
     transformations = params.get("transformations", None)
     write = params.get("write", None)
+    load = params["load"]
+
+    # if the format is None data loading is skipped and None is returned tracing
+    load["format"] = None
+
+    data = load_data(**load)
 
     if transformations is not None:
         assert write is not None, "No writer configured."
-        data = trace_transformations(transformations)
+        data = apply_transformations(data, transformations)
         outs = get_outs(data, **write)
         config["outs"] = outs
+
     config = {"stages": {stage: config}}
+
     return config
 
 

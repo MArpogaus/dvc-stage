@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-12-13 14:58:14 (Marcel Arpogaus)
+# changed : 2023-02-08 11:44:33 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -17,20 +17,6 @@ import os
 
 import pandas as pd
 from tqdm import tqdm
-
-
-# PRIVATE FUNCTIONS ###########################################################
-def _load_feather(path: str) -> pd.DataFrame:
-    """load data from feather file
-
-    :param path: path to feather file
-    :type path: str
-    :returns: pd.DataFrame
-
-    """
-    logging.info(f"loading data from {path}")
-    data = pd.read_feather(path)
-    return data
 
 
 # PUBLIC FUNCTIONS ############################################################
@@ -59,6 +45,7 @@ def load_data(format, path, as_dict=False, **kwds):
             data = {}
             for p in tqdm(path):
                 k = os.path.basename(p)
+                k = os.path.splitext(k)[0]
                 data[k] = load_data(
                     format=format,
                     path=p,
@@ -74,8 +61,8 @@ def load_data(format, path, as_dict=False, **kwds):
                 )
         return data
     else:
-        return DATA_LOAD_FUNCTIONS[format](path, **kwds)
-
-
-# GLOBAL VARIABLES ############################################################
-DATA_LOAD_FUNCTIONS = {"feather": _load_feather}
+        if format is None:
+            return None
+        else:
+            logging.info(f"loading data from {path}")
+            return getattr(pd, "read_" + format)(path, **kwds)

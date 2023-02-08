@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-12-15 15:03:57 (Marcel Arpogaus)
+# changed : 2023-02-08 10:19:13 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -14,22 +14,7 @@
 import logging
 import os
 
-import pandas as pd
 from tqdm import tqdm
-
-
-# PRIVATE FUNCTIONS ###########################################################
-def _save_feather(data: pd.DataFrame, path: str) -> None:
-    """save data to feather file
-
-    :param data: data to save
-    :type data: pd.DataFrame
-    :param path: path to feather file
-    :type path: str
-
-    """
-    logging.info(f"writing data to {path}")
-    data.reset_index(drop=True).to_feather(path)
 
 
 # PUBLIC FUNCTIONS ############################################################
@@ -55,9 +40,9 @@ def write_data(data, format, path, **kwds):
                 path=path.format(key=k),
             )
     else:
-        fn = DATA_WRITE_FUNCTIONS[format]
+        fn = getattr(data, "to_" + format)
         logging.debug(f"saving data to {path} as {format}")
-        fn(data, path, **kwds)
+        fn(path, **kwds)
 
 
 def get_outs(data, path, **kwds):
@@ -76,7 +61,3 @@ def get_outs(data, path, **kwds):
     else:
         logging.debug(f"path: {path}")
         return [path]
-
-
-# GLOBAL VARIABLES ############################################################
-DATA_WRITE_FUNCTIONS = {"feather": _save_feather}
