@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-08 12:17:01 (Marcel Arpogaus)
+# changed : 2023-02-08 15:35:27 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -84,7 +84,7 @@ def _get_dvc_config(stage):
     config.update(
         {
             "cmd": f"dvc-stage run {stage}",
-            "deps": deps,
+            "deps": deps + params.get("extra_deps", []),
             "params": list(_flatten_dict(params, parent_key=stage).keys()),
             "meta": {"dvc-stage-version": dvc_stage.__version__},
         }
@@ -103,7 +103,7 @@ def _get_dvc_config(stage):
         assert write is not None, "No writer configured."
         data = apply_transformations(data, transformations)
         outs = get_outs(data, **write)
-        config["outs"] = outs
+        config["outs"] = outs + params.get("extra_outs", [])
 
     config = {"stages": {stage: config}}
 

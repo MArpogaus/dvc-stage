@@ -4,20 +4,26 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-08 12:18:45 (Marcel Arpogaus)
+# changed : 2023-02-08 16:15:17 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+import importlib
 import logging
+import os
+import pickle
 from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+
+# MODULE GLOBAL VARIABLES #####################################################
+__COLUMN_TRANSFORMER_CACHE__ = {}
 
 
 # PRIVATE FUNCTIONS ###########################################################
@@ -124,6 +130,80 @@ def _combine(data: List[pd.DataFrame]) -> pd.DataFrame:
         return df_combined
 
 
+def initialize_sklearn_transformer(transformer_class_name, **kwds):
+    if transformer_class_name in ("drop", "passthrough"):
+        return transformer_class_name
+    else:
+        transformer_class_pkg, transformer_class_name = transformer_class_name.rsplit(
+            ".", 1
+        )
+        transformer_class = getattr(
+            importlib.import_module(transformer_class_pkg), transformer_class_name
+        )
+        logging.debug(
+            f'importing "{transformer_class_name}" from "{transformer_class_pkg}"'
+        )
+        return transformer_class(**kwds)
+
+
+def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
+    from sklearn.compose import make_column_transformer
+
+    column_transformer_key = id(transformers)
+    column_transformer = __COLUMN_TRANSFORMER_CACHE__.get(column_transformer_key, None)
+    if column_transformer is None:
+        transformers = list(
+            map(
+                lambda trafo: (
+                    initialize_sklearn_transformer(
+                        trafo["class_name"], **trafo.get("kwds", {})
+                    ),
+                    trafo["columns"],
+                ),
+                transformers,
+            )
+        )
+        column_transformer = make_column_transformer(
+            *transformers, remainder=remainder, **kwds
+        )
+        logging.debug(column_transformer)
+
+        __COLUMN_TRANSFORMER_CACHE__[column_transformer_key] = column_transformer
+
+    return column_transformer
+
+
+def _column_transformer_fit(data: pd.DataFrame, dump_to_file=False, **kwds):
+    if data is None:
+        return None
+    else:
+        column_transfomer = _get_column_transformer(**kwds)
+        column_transfomer = column_transfomer.fit(data)
+
+        if dump_to_file is not None:
+            dirname = os.path.dirname(dump_to_file)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+            with open(dump_to_file, "wb+") as file:
+                pickle.dump(column_transfomer, file)
+
+        return data
+
+
+def _column_transformer_transform(data: pd.DataFrame, **kwds):
+    if data is None:
+        return None
+    else:
+        column_transfomer = _get_column_transformer(**kwds)
+        columns_names = data.columns
+        transformed_values = column_transfomer.transform(data)
+        data = pd.DataFrame(
+            columns=column_transfomer.get_feature_names_out(columns_names),
+            data=transformed_values,
+        )
+        return data
+
+
 def _get_transformation(data, name):
     fn = TRANSFORMATION_FUNCTIONS.get(name)
     if fn is None:
@@ -134,31 +214,42 @@ def _get_transformation(data, name):
     return fn
 
 
-def _apply_transformation(data, name, **kwds):
+def _apply_transformation(data, name, exclude=[], include=[], **kwds):
     if isinstance(data, list) and name != "combine":
         logging.debug("arg is list")
         results_list = []
-        for a in tqdm(data):
-            results_list.append(
-                _apply_transformation(
-                    data=a,
+        for idx, dat in tqdm(enumerate(data)):
+            if (len(include) == 0 and idx not in exclude) or idx in include:
+                logging.debug(f"transforming DataFrame at position {idx}")
+                transformed_data = _apply_transformation(
+                    data=dat,
                     name=name,
                     **kwds,
                 )
-            )
+            else:
+                logging.debug(f"skipping transformation of DataFrame at position {idx}")
+                transformed_data = dat
+                raise ValueError()
+            results_list.append(transformed_data)
         return results_list
     if isinstance(data, dict):
         logging.debug("arg is dict")
         results_dict = {}
-        for k, v in tqdm(data.items()):
-            results_dict[k] = _apply_transformation(
-                data=v,
-                name=name,
-                **kwds,
-            )
+        for key, dat in tqdm(data.items()):
+            if (len(include) == 0 and key not in exclude) or key in include:
+                logging.debug(f"transforming DataFrame with key {key}")
+                transformed_data = _apply_transformation(
+                    data=dat,
+                    name=name,
+                    **kwds,
+                )
+            else:
+                logging.debug(f"skipping transformation of DataFrame with key {key}")
+                transformed_data = dat
+            results_dict[key] = transformed_data
         return results_dict
     else:
-        logging.debug(f"applying {name}")
+        logging.debug(f"applying transformation: {name}")
         fn = _get_transformation(data, name)
         return fn(data, **kwds)
 
@@ -180,4 +271,9 @@ def apply_transformations(data, transformations):
 
 
 # GLOBAL VARIABLES ############################################################
-TRANSFORMATION_FUNCTIONS = {"split": _split, "combine": _combine}
+TRANSFORMATION_FUNCTIONS = {
+    "split": _split,
+    "combine": _combine,
+    "column_transformer_fit": _column_transformer_fit,
+    "column_transformer_transform": _column_transformer_transform,
+}
