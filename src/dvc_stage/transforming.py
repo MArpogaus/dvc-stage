@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-08 16:15:17 (Marcel Arpogaus)
+# changed : 2023-02-09 16:22:38 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -21,6 +21,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+
+from .common import CUSTOM_MODULE_PREFIX
 
 # MODULE GLOBAL VARIABLES #####################################################
 __COLUMN_TRANSFORMER_CACHE__ = {}
@@ -130,7 +132,7 @@ def _combine(data: List[pd.DataFrame]) -> pd.DataFrame:
         return df_combined
 
 
-def initialize_sklearn_transformer(transformer_class_name, **kwds):
+def _initialize_sklearn_transformer(transformer_class_name, **kwds):
     if transformer_class_name in ("drop", "passthrough"):
         return transformer_class_name
     else:
@@ -155,7 +157,7 @@ def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
         transformers = list(
             map(
                 lambda trafo: (
-                    initialize_sklearn_transformer(
+                    _initialize_sklearn_transformer(
                         trafo["class_name"], **trafo.get("kwds", {})
                     ),
                     trafo["columns"],
@@ -164,7 +166,7 @@ def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
             )
         )
         column_transformer = make_column_transformer(
-            *transformers, remainder=remainder, **kwds
+            *transformers, remainder=_initialize_sklearn_transformer(remainder), **kwds
         )
         logging.debug(column_transformer)
 
@@ -205,12 +207,19 @@ def _column_transformer_transform(data: pd.DataFrame, **kwds):
 
 
 def _get_transformation(data, name):
-    fn = TRANSFORMATION_FUNCTIONS.get(name)
-    if fn is None:
-        if hasattr(data, name):
-            fn = lambda _, **kwds: getattr(data, name)(**kwds)  # noqa E731
-        elif data is None and hasattr(pd.DataFrame, name):
-            fn = lambda _: None  # noqa E731
+    if name.startswith(CUSTOM_MODULE_PREFIX):
+        module_name, function_name = name.replace(CUSTOM_MODULE_PREFIX, "").rsplit(
+            ".", 1
+        )
+        fn = getattr(importlib.import_module(module_name), function_name)
+    elif name in TRANSFORMATION_FUNCTIONS.keys():
+        fn = TRANSFORMATION_FUNCTIONS[name]
+    elif hasattr(data, name):
+        fn = lambda _, **kwds: getattr(data, name)(**kwds)  # noqa E731
+    elif data is None and hasattr(pd.DataFrame, name):
+        fn = lambda _: None  # noqa E731
+    else:
+        raise ValueError(f'transformation function "{name}" not found')
     return fn
 
 
