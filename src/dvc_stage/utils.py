@@ -4,14 +4,13 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-08 15:35:27 (Marcel Arpogaus)
+# changed : 2023-02-09 15:51:34 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
-import importlib
 import logging
 
 import dvc.api
@@ -34,17 +33,6 @@ def _flatten_dict(d, parent_key="", sep="."):
         else:
             items.append((new_key, v))
     return dict(items)
-
-
-def _load_extra_modules(extra_modules):
-    for module_name in extra_modules:
-        module = importlib.import_module(module_name)
-        dvc_stage.transforming.TRANSFORMATION_FUNCTIONS.update(
-            getattr(module, "TRANSFORMATION_FUNCTIONS", {})
-        )
-        dvc_stage.validating.VALIDATION_FUNCTIONS.update(
-            getattr(module, "VALIDATION_FUNCTIONS", {})
-        )
 
 
 def _load_dvc_yaml():
@@ -75,8 +63,6 @@ def _get_dvc_config(stage):
     logging.debug(f"tracing dvc stage: {stage}")
     params = dvc.api.params_show()[stage]
     logging.debug(params)
-    if "extra_modules" in params.keys():
-        _load_extra_modules(params["extra_modules"])
 
     deps = get_deps(params["load"]["path"])
 
@@ -153,9 +139,6 @@ def run_stage(stage, validate=True):
         _validate_dvc_yaml(stage)
     params = dvc.api.params_show(stages=stage)[stage]
     logging.debug(params)
-
-    if "extra_modules" in params.keys():
-        _load_extra_modules(params["extra_modules"])
 
     data = load_data(
         **params["load"],
