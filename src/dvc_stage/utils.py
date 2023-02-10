@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-10 13:13:15 (Marcel Arpogaus)
+# changed : 2023-02-10 16:09:00 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -66,13 +66,10 @@ def _validate_dvc_yaml(stage):
 
 
 def _parse_path(path, params) -> Dict:
-    print(path, params)
     pattern = re.compile(r"\${([a-z]+)}")  # noqa: W605
     matches = set(re.findall(pattern, path))
-    print(matches)
     for g in matches:
         path = path.replace("${" + g + "}", params[g])
-    print(path)
     return path, matches
 
 

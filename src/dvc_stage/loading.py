@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-10 15:47:23 (Marcel Arpogaus)
+# changed : 2023-02-10 16:09:17 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -25,7 +25,7 @@ def _get_loading_function(format, import_from):
     if format == "custom":
         module_name, function_name = import_from.rsplit(".", 1)
         fn = getattr(importlib.import_module(module_name), function_name)
-    elif hasattr(pd, format):
+    elif hasattr(pd, "read_" + format):
         fn = getattr(pd, "read_" + format)
     else:
         raise ValueError(f'loading function for format "{format}" not found')
@@ -47,7 +47,6 @@ def load_data(format, path, as_dict=False, key_map=None, import_from=None, **kwd
                         match = fnmatch.fnmatch(p, pat)
                         if match:
                             k = key
-                            print(k)
                             break
                     if k is None:
                         raise ValueError(f"Could not find matching key for '{pat}'")
