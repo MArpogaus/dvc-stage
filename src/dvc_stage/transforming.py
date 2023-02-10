@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-09 16:22:38 (Marcel Arpogaus)
+# changed : 2023-02-10 15:41:54 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -22,10 +22,9 @@ import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from .common import CUSTOM_MODULE_PREFIX
-
 # MODULE GLOBAL VARIABLES #####################################################
 __COLUMN_TRANSFORMER_CACHE__ = {}
+__LOGGER__ = logging.getLogger(__name__)
 
 
 # PRIVATE FUNCTIONS ###########################################################
@@ -55,10 +54,10 @@ def _date_time_split(
     # Reserve some data for testing
     periods = len(pd.period_range(start_point, end_date, freq=freq))
     split_point = start_point + int(np.round(size * periods)) * pd.offsets.MonthBegin()
-    logging.info(
+    __LOGGER__.info(
         f"left split from {start_point} till {split_point - pd.offsets.Minute(30)}"
     )
-    logging.info(f"right split from {split_point} till {end_date}")
+    __LOGGER__.info(f"right split from {split_point} till {end_date}")
 
     left_split_str = str(split_point - pd.offsets.Minute(30))
     right_split_str = str(split_point)
@@ -109,7 +108,7 @@ def _split(
 
     """
     if data is None:
-        logging.debug("tracing split function")
+        __LOGGER__.debug("tracing split function")
         return {left_split_name: None, right_split_name: None}
     else:
         if by == "id":
@@ -122,14 +121,32 @@ def _split(
         return {left_split_name: left_split, right_split_name: right_split}
 
 
-def _combine(data: List[pd.DataFrame]) -> pd.DataFrame:
-    if data[0] is None:
-        return None
+def _combine(
+    data: List[pd.DataFrame], include, exclude, new_key=None
+) -> List[pd.DataFrame]:
+    if isinstance(data, list):
+        iterable = range(len(data))
+    elif isinstance(data, dict):
+        iterable = list(data.keys())
     else:
-        df_combined = data[0]
-        for df in tqdm(data[1:]):
-            df_combined.append(df)
-        return df_combined
+        raise ValueError(f"data has unsupported format: {type(data)}")
+
+    to_combine = []
+    for i in iterable:
+        if _should_transform(i, include, exclude):
+            to_combine.append(data.pop(i))
+
+    if to_combine[0] is None:
+        combined = None
+    else:
+        combined = pd.concat(to_combine)
+
+    if len(data) > 0:
+        data[new_key if new_key else len(data)] = combined
+    else:
+        data = combined
+
+    return data
 
 
 def _initialize_sklearn_transformer(transformer_class_name, **kwds):
@@ -142,7 +159,7 @@ def _initialize_sklearn_transformer(transformer_class_name, **kwds):
         transformer_class = getattr(
             importlib.import_module(transformer_class_pkg), transformer_class_name
         )
-        logging.debug(
+        __LOGGER__.debug(
             f'importing "{transformer_class_name}" from "{transformer_class_pkg}"'
         )
         return transformer_class(**kwds)
@@ -168,7 +185,7 @@ def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
         column_transformer = make_column_transformer(
             *transformers, remainder=_initialize_sklearn_transformer(remainder), **kwds
         )
-        logging.debug(column_transformer)
+        __LOGGER__.debug(column_transformer)
 
         __COLUMN_TRANSFORMER_CACHE__[column_transformer_key] = column_transformer
 
@@ -206,74 +223,95 @@ def _column_transformer_transform(data: pd.DataFrame, **kwds):
         return data
 
 
-def _get_transformation(data, name):
-    if name.startswith(CUSTOM_MODULE_PREFIX):
-        module_name, function_name = name.replace(CUSTOM_MODULE_PREFIX, "").rsplit(
-            ".", 1
-        )
+def _get_transformation(data, id, import_from):
+    if id == "custom":
+        module_name, function_name = import_from.rsplit(".", 1)
         fn = getattr(importlib.import_module(module_name), function_name)
-    elif name in TRANSFORMATION_FUNCTIONS.keys():
-        fn = TRANSFORMATION_FUNCTIONS[name]
-    elif hasattr(data, name):
-        fn = lambda _, **kwds: getattr(data, name)(**kwds)  # noqa E731
-    elif data is None and hasattr(pd.DataFrame, name):
+    elif id in TRANSFORMATION_FUNCTIONS.keys():
+        fn = TRANSFORMATION_FUNCTIONS[id]
+    elif hasattr(data, id):
+        fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa E731
+    elif data is None and hasattr(pd.DataFrame, id):
         fn = lambda _: None  # noqa E731
     else:
-        raise ValueError(f'transformation function "{name}" not found')
+        raise ValueError(f'transformation function "{id}" not found')
     return fn
 
 
-def _apply_transformation(data, name, exclude=[], include=[], **kwds):
-    if isinstance(data, list) and name != "combine":
-        logging.debug("arg is list")
+def _should_transform(key, include, exclude):
+    return (len(include) == 0 and key not in exclude) or key in include
+
+
+def _apply_transformation(data, id, import_from=None, exclude=[], include=[], **kwds):
+    if isinstance(data, list) and id != "combine":
+        __LOGGER__.debug("arg is list")
         results_list = []
         for idx, dat in tqdm(enumerate(data)):
-            if (len(include) == 0 and idx not in exclude) or idx in include:
-                logging.debug(f"transforming DataFrame at position {idx}")
+            if _should_transform(idx, include, exclude):
+                __LOGGER__.debug(f"transforming DataFrame at position {idx}")
                 transformed_data = _apply_transformation(
                     data=dat,
-                    name=name,
+                    id=id,
+                    import_from=import_from,
+                    exclude=exclude,
+                    include=include,
                     **kwds,
                 )
             else:
-                logging.debug(f"skipping transformation of DataFrame at position {idx}")
+                __LOGGER__.debug(
+                    f"skipping transformation of DataFrame at position {idx}"
+                )
                 transformed_data = dat
                 raise ValueError()
-            results_list.append(transformed_data)
+            if isinstance(transformed_data, list):
+                results_list += transformed_data
+            else:
+                results_list.append(transformed_data)
         return results_list
-    if isinstance(data, dict):
-        logging.debug("arg is dict")
+    elif isinstance(data, dict) and id != "combine":
+        __LOGGER__.debug("arg is dict")
         results_dict = {}
         for key, dat in tqdm(data.items()):
-            if (len(include) == 0 and key not in exclude) or key in include:
-                logging.debug(f"transforming DataFrame with key {key}")
+            if _should_transform(key, include, exclude):
+                __LOGGER__.debug(f"transforming DataFrame with key {key}")
                 transformed_data = _apply_transformation(
                     data=dat,
-                    name=name,
+                    id=id,
+                    import_from=import_from,
+                    exclude=exclude,
+                    include=include,
                     **kwds,
                 )
             else:
-                logging.debug(f"skipping transformation of DataFrame with key {key}")
+                __LOGGER__.debug(f"skipping transformation of DataFrame with key {key}")
                 transformed_data = dat
-            results_dict[key] = transformed_data
+            if isinstance(transformed_data, dict):
+                results_dict.update(transformed_data)
+            else:
+                results_dict[key] = transformed_data
         return results_dict
+    elif isinstance(data, (dict, list)) and id == "combine":
+        __LOGGER__.debug("Combining data")
+        return _combine(data, include, exclude, **kwds)
     else:
-        logging.debug(f"applying transformation: {name}")
-        fn = _get_transformation(data, name)
+        __LOGGER__.debug(f"applying transformation: {id}")
+        fn = _get_transformation(data, id, import_from)
         return fn(data, **kwds)
 
 
 # PUBLIC FUNCTIONS ############################################################
 def apply_transformations(data, transformations):
-    logging.debug("applying transformations")
-    logging.debug(transformations)
-    it = tqdm(transformations.items())
+    __LOGGER__.debug("applying transformations")
+    __LOGGER__.debug(transformations)
+    it = tqdm(transformations)
     with logging_redirect_tqdm():
-        for name, kwds in it:
-            it.set_description(name)
+        for kwds in it:
+            if "description" in kwds:
+                it.set_description(kwds.pop("description"))
+            else:
+                it.set_description(kwds["id"])
             data = _apply_transformation(
                 data=data,
-                name=name,
                 **kwds,
             )
     return data
