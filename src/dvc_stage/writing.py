@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-08 10:19:13 (Marcel Arpogaus)
+# changed : 2023-02-10 15:38:43 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -31,7 +31,7 @@ def write_data(data, format, path, **kwds):
                 data=d,
                 path=path.format(item=i),
             )
-    if isinstance(data, dict):
+    elif isinstance(data, dict):
         logging.debug("arg is dict")
         for k, v in tqdm(data.items()):
             write_data(
@@ -52,12 +52,12 @@ def get_outs(data, path, **kwds):
         logging.debug("data is list")
         for i, d in enumerate(data):
             outs.append(path.format(item=i))
-        return outs
-    if isinstance(data, dict):
+    elif isinstance(data, dict):
         logging.debug("arg is dict")
         for k, v in data.items():
             outs.append(path.format(key=k))
-        return outs
     else:
         logging.debug(f"path: {path}")
-        return [path]
+        outs.insert(path)
+
+    return list(sorted(outs))
