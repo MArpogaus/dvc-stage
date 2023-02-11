@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-10 15:41:54 (Marcel Arpogaus)
+# changed : 2023-02-11 08:01:01 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -92,7 +92,7 @@ def _id_split(
 
 
 def _split(
-    data: pd.DataFrame, by: str, left_split_name: str, right_split_name: str, **kwds
+    data: pd.DataFrame, by: str, left_split_key: str, right_split_key: str, **kwds
 ) -> Dict[str, pd.DataFrame]:
     """TODO describe function
 
@@ -109,7 +109,7 @@ def _split(
     """
     if data is None:
         __LOGGER__.debug("tracing split function")
-        return {left_split_name: None, right_split_name: None}
+        return {left_split_key: None, right_split_key: None}
     else:
         if by == "id":
             left_split, right_split = _id_split(data, **kwds)
@@ -118,21 +118,14 @@ def _split(
         else:
             raise ValueError(f"invalid choice for split: {by}")
 
-        return {left_split_name: left_split, right_split_name: right_split}
+        return {left_split_key: left_split, right_split_key: right_split}
 
 
 def _combine(
-    data: List[pd.DataFrame], include, exclude, new_key=None
+    data: List[pd.DataFrame], include, exclude, new_key="combined"
 ) -> List[pd.DataFrame]:
-    if isinstance(data, list):
-        iterable = range(len(data))
-    elif isinstance(data, dict):
-        iterable = list(data.keys())
-    else:
-        raise ValueError(f"data has unsupported format: {type(data)}")
-
     to_combine = []
-    for i in iterable:
+    for i in list(data.keys()):
         if _should_transform(i, include, exclude):
             to_combine.append(data.pop(i))
 
@@ -142,7 +135,7 @@ def _combine(
         combined = pd.concat(to_combine)
 
     if len(data) > 0:
-        data[new_key if new_key else len(data)] = combined
+        data[new_key] = combined
     else:
         data = combined
 
@@ -243,32 +236,7 @@ def _should_transform(key, include, exclude):
 
 
 def _apply_transformation(data, id, import_from=None, exclude=[], include=[], **kwds):
-    if isinstance(data, list) and id != "combine":
-        __LOGGER__.debug("arg is list")
-        results_list = []
-        for idx, dat in tqdm(enumerate(data)):
-            if _should_transform(idx, include, exclude):
-                __LOGGER__.debug(f"transforming DataFrame at position {idx}")
-                transformed_data = _apply_transformation(
-                    data=dat,
-                    id=id,
-                    import_from=import_from,
-                    exclude=exclude,
-                    include=include,
-                    **kwds,
-                )
-            else:
-                __LOGGER__.debug(
-                    f"skipping transformation of DataFrame at position {idx}"
-                )
-                transformed_data = dat
-                raise ValueError()
-            if isinstance(transformed_data, list):
-                results_list += transformed_data
-            else:
-                results_list.append(transformed_data)
-        return results_list
-    elif isinstance(data, dict) and id != "combine":
+    if isinstance(data, dict) and id != "combine":
         __LOGGER__.debug("arg is dict")
         results_dict = {}
         for key, dat in tqdm(data.items()):
@@ -290,11 +258,11 @@ def _apply_transformation(data, id, import_from=None, exclude=[], include=[], **
             else:
                 results_dict[key] = transformed_data
         return results_dict
-    elif isinstance(data, (dict, list)) and id == "combine":
-        __LOGGER__.debug("Combining data")
+    elif isinstance(data, dict) and id == "combine":
+        __LOGGER__.info("Combining data")
         return _combine(data, include, exclude, **kwds)
     else:
-        __LOGGER__.debug(f"applying transformation: {id}")
+        __LOGGER__.info(f"applying transformation: {id}")
         fn = _get_transformation(data, id, import_from)
         return fn(data, **kwds)
 

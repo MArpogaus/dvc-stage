@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:56 (Marcel Arpogaus)
-# changed : 2023-02-09 16:44:29 (Marcel Arpogaus)
+# changed : 2023-02-11 07:56:37 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -18,52 +18,46 @@ import numpy as np
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from .common import CUSTOM_MODULE_PREFIX
+# MODULE GLOBAL VARIABLES #####################################################
+__LOGGER__ = logging.getLogger(__name__)
 
 
 # PRIVATE FUNCTIONS ###########################################################
-def _get_validation(data, name):
-    if name.startswith(CUSTOM_MODULE_PREFIX):
-        module_name, function_name = name.replace(CUSTOM_MODULE_PREFIX, "").rsplit(
-            ".", 1
-        )
+def _get_validation(id, data, import_from):
+    if id == "custom":
+        module_name, function_name = import_from.rsplit(".", 1)
         fn = getattr(importlib.import_module(module_name), function_name)
-    elif hasattr(data, name):
-        fn = lambda _, **kwds: getattr(data, name)(**kwds)  # noqa E731
+    elif hasattr(data, id):
+        fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa E731
     else:
-        raise ValueError(f'validation function "{name}" not found')
+        raise ValueError(f'validation function "{id}" not found')
     return fn
 
 
-def _apply_validation(name, data, reduction="any", expected=True, **kwds):
-    if isinstance(data, list):
-        logging.debug("arg is list")
-        for d in tqdm(data):
+def _apply_validation(
+    result, id, import_from=None, reduction="any", expected=True, **kwds
+):
+    if isinstance(result, dict):
+        __LOGGER__.debug("arg is dict")
+        for k, v in tqdm(result.items()):
+            __LOGGER__.debug(f"validating {k}")
             _apply_validation(
-                name=name,
-                data=d,
-                **kwds,
-            )
-    if isinstance(data, dict):
-        logging.debug("arg is dict")
-        for k, v in tqdm(data.items()):
-            logging.debug(f"validating {k}")
-            _apply_validation(
-                name=name,
-                data=v,
+                result=v,
+                id=id,
+                import_from=import_from,
                 **kwds,
             )
     else:
-        logging.debug(f"applying {name}")
-        fn = _get_validation(data, name)
+        __LOGGER__.info(f"applying validation: {id}")
+        fn = _get_validation(id, result, import_from)
 
-        data = fn(data, **kwds)
+        result = fn(result, **kwds)
         if reduction == "any":
-            reduced = np.any(data)
+            reduced = np.any(result)
         elif reduction == "all":
-            reduced = np.all(data)
+            reduced = np.all(result)
         elif reduction == "none":
-            reduced = data
+            reduced = result
         else:
             raise ValueError(
                 f"reduction method {reduction} unsupported."
@@ -71,7 +65,7 @@ def _apply_validation(name, data, reduction="any", expected=True, **kwds):
             )
 
         assert reduced != expected, (
-            f"Validation '{name}' with reduction method '{reduction}'"
+            f"Validation '{id}' with reduction method '{reduction}'"
             f"evaluated to: {reduced}\n"
             f"Expected: {expected}"
         )
@@ -79,14 +73,16 @@ def _apply_validation(name, data, reduction="any", expected=True, **kwds):
 
 # PUBLIC FUNCTIONS ############################################################
 def apply_validations(data, validations):
-    logging.debug("applying validations")
-    logging.debug(validations)
-    it = tqdm(validations.items())
+    __LOGGER__.debug("applying validations")
+    __LOGGER__.debug(validations)
+    it = tqdm(validations)
     with logging_redirect_tqdm():
-        for name, kwds in it:
-            it.set_description(name)
+        for kwds in it:
+            if "description" in kwds:
+                it.set_description(kwds.pop("description"))
+            else:
+                it.set_description(kwds["id"])
             _apply_validation(
-                name=name,
-                data=data,
+                result=data,
                 **kwds,
             )

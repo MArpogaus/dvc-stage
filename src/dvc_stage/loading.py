@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-10 16:09:17 (Marcel Arpogaus)
+# changed : 2023-02-11 07:26:25 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -19,6 +19,9 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
+# MODULE GLOBAL VARIABLES #####################################################
+__LOGGER__ = logging.getLogger(__name__)
+
 
 # PRIVATE FUNCTIONS ###########################################################
 def _get_loading_function(format, import_from):
@@ -32,43 +35,36 @@ def _get_loading_function(format, import_from):
     return fn
 
 
+def _get_data_key(path, key_map):
+    k = os.path.basename(path)
+    k = os.path.splitext(k)[0]
+    if key_map:
+        for pat, key in key_map.items():
+            match = fnmatch.fnmatch(path, pat)
+            if match:
+                k = key
+                break
+    __LOGGER__.debug(f'using key "{k}" for file "{path}"')
+    return k
+
+
 # PUBLIC FUNCTIONS ############################################################
-def load_data(format, path, as_dict=False, key_map=None, import_from=None, **kwds):
+def load_data(format, path, key_map=None, import_from=None, **kwds):
     if len(path) == 1:
         path = path[0]
     if isinstance(path, list):
-        logging.debug("got a list of paths")
-        if as_dict:
-            data = {}
-            for p in tqdm(path):
-                k = None
-                if key_map:
-                    for pat, key in key_map.items():
-                        match = fnmatch.fnmatch(p, pat)
-                        if match:
-                            k = key
-                            break
-                    if k is None:
-                        raise ValueError(f"Could not find matching key for '{pat}'")
-                else:
-                    k = os.path.basename(p)
-                    k = os.path.splitext(k)[0]
-                data[k] = load_data(
-                    format=format, path=p, as_dict=as_dict, import_from=import_from
-                )
-        else:
-            data = []
-            for p in tqdm(path):
-                data.append(
-                    load_data(
-                        format=format, path=p, as_dict=as_dict, import_from=import_from
-                    )
-                )
+        __LOGGER__.debug("got a list of paths")
+        data = {}
+        for p in tqdm(path):
+            k = _get_data_key(p, key_map)
+            data[k] = load_data(
+                format=format, path=p, key_map=key_map, import_from=import_from, **kwds
+            )
         return data
     else:
         if format is None:
             return None
         else:
-            logging.info(f"loading data from {path}")
+            __LOGGER__.info(f"loading data from {path}")
             fn = _get_loading_function(format, import_from)
             return fn(path, **kwds)
