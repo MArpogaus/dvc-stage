@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-10 16:09:00 (Marcel Arpogaus)
+# changed : 2023-02-13 14:50:50 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -132,11 +132,11 @@ def _get_dvc_config(stage):
     # if the format is None data loading is skipped and None is returned tracing
     load["format"] = None
 
-    data = load_data(path=deps, **load)
+    data = load_data(paths=deps, quiet=True, **load)
 
     if transformations is not None:
         assert write is not None, "No writer configured."
-        data = apply_transformations(data, transformations)
+        data = apply_transformations(data, transformations, quiet=True)
         outs = get_outs(data, **write)
         config["outs"] = outs + stage_params.get("extra_outs", [])
 
@@ -192,7 +192,7 @@ def run_stage(stage, validate=True):
 
     deps, _ = _get_deps(stage_params["load"].pop("path"), global_params)
     data = load_data(
-        path=deps,
+        paths=deps,
         **stage_params["load"],
     )
 

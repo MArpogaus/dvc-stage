@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-11 07:26:25 (Marcel Arpogaus)
+# changed : 2023-02-13 15:05:03 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -49,22 +49,27 @@ def _get_data_key(path, key_map):
 
 
 # PUBLIC FUNCTIONS ############################################################
-def load_data(format, path, key_map=None, import_from=None, **kwds):
-    if len(path) == 1:
-        path = path[0]
-    if isinstance(path, list):
+def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds):
+    __LOGGER__.disabled = quiet
+    if len(paths) == 1:
+        paths = paths[0]
+    if isinstance(paths, list):
         __LOGGER__.debug("got a list of paths")
         data = {}
-        for p in tqdm(path):
+        if quiet:
+            it = paths
+        else:
+            it = tqdm(paths)
+        for p in it:
             k = _get_data_key(p, key_map)
             data[k] = load_data(
-                format=format, path=p, key_map=key_map, import_from=import_from, **kwds
+                format=format, paths=p, key_map=key_map, import_from=import_from, **kwds
             )
         return data
     else:
         if format is None:
             return None
         else:
-            __LOGGER__.info(f"loading data from {path}")
+            __LOGGER__.debug(f"loading data from {paths}")
             fn = _get_loading_function(format, import_from)
-            return fn(path, **kwds)
+            return fn(paths, **kwds)

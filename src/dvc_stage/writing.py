@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-11 08:00:12 (Marcel Arpogaus)
+# changed : 2023-02-13 15:04:51 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -48,7 +48,7 @@ def write_data(data, format, path, import_from=None, **kwds):
                 path=path.format(key=k),
             )
     else:
-        __LOGGER__.info(f"saving data to {path} as {format}")
+        __LOGGER__.debug(f"saving data to {path} as {format}")
         fn = _get_writing_function(data, format, import_from)
         fn(data, path, **kwds)
 

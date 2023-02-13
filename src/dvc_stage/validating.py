@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:56 (Marcel Arpogaus)
-# changed : 2023-02-11 07:56:37 (Marcel Arpogaus)
+# changed : 2023-02-13 15:00:44 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -48,7 +48,7 @@ def _apply_validation(
                 **kwds,
             )
     else:
-        __LOGGER__.info(f"applying validation: {id}")
+        __LOGGER__.debug(f"applying validation: {id}")
         fn = _get_validation(id, result, import_from)
 
         result = fn(result, **kwds)
@@ -78,10 +78,7 @@ def apply_validations(data, validations):
     it = tqdm(validations)
     with logging_redirect_tqdm():
         for kwds in it:
-            if "description" in kwds:
-                it.set_description(kwds.pop("description"))
-            else:
-                it.set_description(kwds["id"])
+            it.set_description(kwds.pop("description", kwds["id"]))
             _apply_validation(
                 result=data,
                 **kwds,

@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-13 11:51:52 (Marcel Arpogaus)
+# changed : 2023-02-13 15:01:08 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -54,10 +54,10 @@ def _date_time_split(
     # Reserve some data for testing
     periods = len(pd.period_range(start_point, end_date, freq=freq))
     split_point = start_point + int(np.round(size * periods)) * pd.offsets.MonthBegin()
-    __LOGGER__.info(
+    __LOGGER__.debug(
         f"left split from {start_point} till {split_point - pd.offsets.Minute(30)}"
     )
-    __LOGGER__.info(f"right split from {split_point} till {end_date}")
+    __LOGGER__.debug(f"right split from {split_point} till {end_date}")
 
     left_split_str = str(split_point - pd.offsets.Minute(30))
     right_split_str = str(split_point)
@@ -241,19 +241,29 @@ def _should_transform(key, include, exclude):
     return (len(include) == 0 and key not in exclude) or key in include
 
 
-def _apply_transformation(data, id, import_from=None, exclude=[], include=[], **kwds):
+def _apply_transformation(
+    data, id, import_from=None, exclude=[], include=[], quiet=False, **kwds
+):
+    __LOGGER__.disabled = quiet
     if isinstance(data, dict) and id != "combine":
         __LOGGER__.debug("arg is dict")
         results_dict = {}
-        for key, dat in tqdm(data.items()):
+        if quiet:
+            it = data.items()
+        else:
+            it = tqdm(data.items())
+        for key, dat in it:
             if _should_transform(key, include, exclude):
                 __LOGGER__.debug(f"transforming DataFrame with key {key}")
+                if not quiet:
+                    it.set_description(key)
                 transformed_data = _apply_transformation(
                     data=dat,
                     id=id,
                     import_from=import_from,
                     exclude=exclude,
                     include=include,
+                    quiet=quiet,
                     **kwds,
                 )
             else:
@@ -265,27 +275,33 @@ def _apply_transformation(data, id, import_from=None, exclude=[], include=[], **
                 results_dict[key] = transformed_data
         return results_dict
     elif isinstance(data, dict) and id == "combine":
-        __LOGGER__.info("Combining data")
+        __LOGGER__.debug("Combining data")
         return _combine(data, include, exclude, **kwds)
     else:
-        __LOGGER__.info(f"applying transformation: {id}")
+        __LOGGER__.debug(f"applying transformation: {id}")
         fn = _get_transformation(data, id, import_from)
         return fn(data, **kwds)
 
 
 # PUBLIC FUNCTIONS ############################################################
-def apply_transformations(data, transformations):
+def apply_transformations(data, transformations, quiet=False):
+    __LOGGER__.disabled = quiet
+    if quiet:
+        it = transformations
+    else:
+        it = tqdm(transformations)
     __LOGGER__.debug("applying transformations")
     __LOGGER__.debug(transformations)
-    it = tqdm(transformations)
     with logging_redirect_tqdm():
         for kwds in it:
-            if "description" in kwds:
-                it.set_description(kwds.pop("description"))
+            desc = kwds.pop("description", kwds["id"])
+            if quiet:
+                __LOGGER__.debug(desc)
             else:
-                it.set_description(kwds["id"])
+                it.set_description(desc)
             data = _apply_transformation(
                 data=data,
+                quiet=quiet,
                 **kwds,
             )
     return data
