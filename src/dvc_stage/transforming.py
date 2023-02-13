@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-13 15:01:08 (Marcel Arpogaus)
+# changed : 2023-02-13 16:12:59 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -216,6 +216,12 @@ def _column_transformer_transform(data: pd.DataFrame, **kwds):
         return data
 
 
+def _column_transformer_fit_transform(data: pd.DataFrame, dump_to_file=False, **kwds):
+    data = _column_transformer_fit(data, dump_to_file, **kwds)
+    data = _column_transformer_transform(data, **kwds)
+    return data
+
+
 def _add_date_offset_to_column(data, column, **kwds):
     if data is not None:
         data[column] += pd.offsets.DateOffset(**kwds)
@@ -312,6 +318,7 @@ TRANSFORMATION_FUNCTIONS = {
     "split": _split,
     "combine": _combine,
     "column_transformer_fit": _column_transformer_fit,
+    "column_transformer_fit_transform": _column_transformer_fit_transform,
     "column_transformer_transform": _column_transformer_transform,
     "add_date_offset_to_column": _add_date_offset_to_column,
 }
