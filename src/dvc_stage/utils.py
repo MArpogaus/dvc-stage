@@ -4,13 +4,14 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-13 14:50:50 (Marcel Arpogaus)
+# changed : 2023-02-13 16:00:33 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+import difflib
 import glob
 import logging
 import re
@@ -155,14 +156,20 @@ def update_dvc_stage(stage):
     if _check_dvc_yaml(stage):
         __LOGGER__.info(f"stage definition of {stage} is up to date")
     else:
-        __LOGGER__.info("updating dvc.yaml")
+        __LOGGER__.info(
+            f"stage definition of {stage} is invalid, dvc.yaml need to be updated"
+        )
         dvc_yaml = _load_dvc_yaml()
         config = _get_dvc_config(stage)["stages"][stage]
         if stage in dvc_yaml["stages"][stage]["cmd"]:
             config["cmd"] = dvc_yaml["stages"][stage]["cmd"]
 
-        __LOGGER__.info(f"before:\n{yaml.dump(dvc_yaml['stages'][stage])}")
-        __LOGGER__.info(f"after update:\n{yaml.dump(config)}")
+        s1 = yaml.dump(dvc_yaml["stages"][stage]).splitlines()
+        s2 = yaml.dump(config).splitlines()
+        diff = difflib.ndiff(s1, s2)
+        diff = "\n".join(diff)
+        __LOGGER__.info(f"changes:\n{diff}")
+
         __LOGGER__.warn("This will alter your dvc.yaml")
         answer = input("type [y]es to continue: ")
 
