@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:56 (Marcel Arpogaus)
-# changed : 2023-02-13 15:00:44 (Marcel Arpogaus)
+# changed : 2023-02-13 16:17:05 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -35,36 +35,38 @@ def _get_validation(id, data, import_from):
 
 
 def _apply_validation(
-    result, id, import_from=None, reduction="any", expected=True, **kwds
+    data, id, import_from=None, reduction="any", expected=True, **kwds
 ):
-    if isinstance(result, dict):
+    if isinstance(data, dict):
         __LOGGER__.debug("arg is dict")
-        for k, v in tqdm(result.items()):
+        for k, v in tqdm(data.items()):
             __LOGGER__.debug(f"validating {k}")
             _apply_validation(
-                result=v,
+                data=v,
                 id=id,
                 import_from=import_from,
+                reduction=reduction,
+                expected=expected,
                 **kwds,
             )
     else:
         __LOGGER__.debug(f"applying validation: {id}")
-        fn = _get_validation(id, result, import_from)
+        fn = _get_validation(id, data, import_from)
 
-        result = fn(result, **kwds)
+        data = fn(data, **kwds)
         if reduction == "any":
-            reduced = np.any(result)
+            reduced = np.any(data)
         elif reduction == "all":
-            reduced = np.all(result)
+            reduced = np.all(data)
         elif reduction == "none":
-            reduced = result
+            reduced = data
         else:
             raise ValueError(
                 f"reduction method {reduction} unsupported."
                 "can either be 'any', 'all' or 'none'."
             )
 
-        assert reduced != expected, (
+        assert reduced == expected, (
             f"Validation '{id}' with reduction method '{reduction}'"
             f"evaluated to: {reduced}\n"
             f"Expected: {expected}"
@@ -80,6 +82,6 @@ def apply_validations(data, validations):
         for kwds in it:
             it.set_description(kwds.pop("description", kwds["id"]))
             _apply_validation(
-                result=data,
+                data=data,
                 **kwds,
             )
