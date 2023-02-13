@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-13 15:04:51 (Marcel Arpogaus)
+# changed : 2023-02-13 15:20:20 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -66,6 +66,6 @@ def get_outs(data, path, **kwds):
             outs.append(path.format(key=k))
     else:
         __LOGGER__.debug(f"path: {path}")
-        outs.insert(path)
+        outs.append(path)
 
     return list(sorted(outs))
