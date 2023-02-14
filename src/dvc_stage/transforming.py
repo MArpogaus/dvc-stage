@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-14 16:12:42 (Marcel Arpogaus)
+# changed : 2023-02-14 16:44:35 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -209,12 +209,10 @@ def _column_transformer_transform(data: pd.DataFrame, **kwds):
         return None
     else:
         column_transfomer = _get_column_transformer(**kwds)
-        columns_names = data.columns
-        transformed_values = column_transfomer.transform(data)
-        data = pd.DataFrame(
-            columns=column_transfomer.get_feature_names_out(columns_names),
-            data=transformed_values,
-        )
+        column_transfomer.set_output(transform="pandas")
+
+        columns_before = data.columns.copy()
+        data = column_transfomer.transform(data)[columns_before]
         return data
 
 
