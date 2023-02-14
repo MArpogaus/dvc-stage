@@ -4,19 +4,20 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:56 (Marcel Arpogaus)
-# changed : 2023-02-13 16:17:05 (Marcel Arpogaus)
+# changed : 2023-02-14 16:13:06 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
-import importlib
 import logging
 
 import numpy as np
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+
+from dvc_stage.utils import import_custom_function, key_is_skipped
 
 # MODULE GLOBAL VARIABLES #####################################################
 __LOGGER__ = logging.getLogger(__name__)
@@ -25,8 +26,7 @@ __LOGGER__ = logging.getLogger(__name__)
 # PRIVATE FUNCTIONS ###########################################################
 def _get_validation(id, data, import_from):
     if id == "custom":
-        module_name, function_name = import_from.rsplit(".", 1)
-        fn = getattr(importlib.import_module(module_name), function_name)
+        fn = import_custom_function(import_from)
     elif hasattr(data, id):
         fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa E731
     else:
@@ -35,20 +35,35 @@ def _get_validation(id, data, import_from):
 
 
 def _apply_validation(
-    data, id, import_from=None, reduction="any", expected=True, **kwds
+    data,
+    id,
+    import_from=None,
+    reduction="any",
+    expected=True,
+    include=[],
+    exclude=[],
+    pass_key_to_fn=False,
+    **kwds,
 ):
     if isinstance(data, dict):
         __LOGGER__.debug("arg is dict")
-        for k, v in tqdm(data.items()):
-            __LOGGER__.debug(f"validating {k}")
-            _apply_validation(
-                data=v,
-                id=id,
-                import_from=import_from,
-                reduction=reduction,
-                expected=expected,
-                **kwds,
-            )
+        it = tqdm(data.items())
+        for key, df in it:
+            it.set_description(key)
+            __LOGGER__.debug(f"validating {key}")
+            if not key_is_skipped(key, include, exclude):
+                if pass_key_to_fn:
+                    kwds.update({"key": key})
+                _apply_validation(
+                    data=df,
+                    id=id,
+                    import_from=import_from,
+                    reduction=reduction,
+                    expected=expected,
+                    include=include,
+                    exclude=exclude,
+                    **kwds,
+                )
     else:
         __LOGGER__.debug(f"applying validation: {id}")
         fn = _get_validation(id, data, import_from)

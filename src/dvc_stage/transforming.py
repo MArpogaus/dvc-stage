@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-13 16:12:59 (Marcel Arpogaus)
+# changed : 2023-02-14 16:12:42 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -21,6 +21,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+
+from dvc_stage.utils import import_custom_function, key_is_skipped
 
 # MODULE GLOBAL VARIABLES #####################################################
 __COLUMN_TRANSFORMER_CACHE__ = {}
@@ -125,9 +127,9 @@ def _combine(
     data: List[pd.DataFrame], include, exclude, new_key="combined"
 ) -> List[pd.DataFrame]:
     to_combine = []
-    for i in list(data.keys()):
-        if _should_transform(i, include, exclude):
-            to_combine.append(data.pop(i))
+    for key in list(data.keys()):
+        if not key_is_skipped(key, include, exclude):
+            to_combine.append(data.pop(key))
 
     if to_combine[0] is None:
         combined = None
@@ -230,8 +232,7 @@ def _add_date_offset_to_column(data, column, **kwds):
 
 def _get_transformation(data, id, import_from):
     if id == "custom":
-        module_name, function_name = import_from.rsplit(".", 1)
-        fn = getattr(importlib.import_module(module_name), function_name)
+        fn = import_custom_function(import_from)
     elif id in TRANSFORMATION_FUNCTIONS.keys():
         fn = TRANSFORMATION_FUNCTIONS[id]
     elif hasattr(data, id):
@@ -243,12 +244,15 @@ def _get_transformation(data, id, import_from):
     return fn
 
 
-def _should_transform(key, include, exclude):
-    return (len(include) == 0 and key not in exclude) or key in include
-
-
 def _apply_transformation(
-    data, id, import_from=None, exclude=[], include=[], quiet=False, **kwds
+    data,
+    id,
+    import_from=None,
+    exclude=[],
+    include=[],
+    quiet=False,
+    pass_key_to_fn=False,
+    **kwds,
 ):
     __LOGGER__.disabled = quiet
     if isinstance(data, dict) and id != "combine":
@@ -259,10 +263,15 @@ def _apply_transformation(
         else:
             it = tqdm(data.items())
         for key, dat in it:
-            if _should_transform(key, include, exclude):
+            if key_is_skipped(key, include, exclude):
+                __LOGGER__.debug(f"skipping transformation of DataFrame with key {key}")
+                transformed_data = dat
+            else:
                 __LOGGER__.debug(f"transforming DataFrame with key {key}")
                 if not quiet:
                     it.set_description(key)
+                if pass_key_to_fn:
+                    kwds.update({"key": key})
                 transformed_data = _apply_transformation(
                     data=dat,
                     id=id,
@@ -272,9 +281,6 @@ def _apply_transformation(
                     quiet=quiet,
                     **kwds,
                 )
-            else:
-                __LOGGER__.debug(f"skipping transformation of DataFrame with key {key}")
-                transformed_data = dat
             if isinstance(transformed_data, dict):
                 results_dict.update(transformed_data)
             else:
@@ -316,7 +322,6 @@ def apply_transformations(data, transformations, quiet=False):
 # GLOBAL VARIABLES ############################################################
 TRANSFORMATION_FUNCTIONS = {
     "split": _split,
-    "combine": _combine,
     "column_transformer_fit": _column_transformer_fit,
     "column_transformer_fit_transform": _column_transformer_fit_transform,
     "column_transformer_transform": _column_transformer_transform,
