@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-14 16:44:35 (Marcel Arpogaus)
+# changed : 2023-02-14 17:07:09 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -236,7 +236,7 @@ def _get_transformation(data, id, import_from):
     elif hasattr(data, id):
         fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa E731
     elif data is None and hasattr(pd.DataFrame, id):
-        fn = lambda _: None  # noqa E731
+        fn = lambda _, **__: None  # noqa E731
     else:
         raise ValueError(f'transformation function "{id}" not found')
     return fn
