@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-13 15:05:03 (Marcel Arpogaus)
+# changed : 2023-02-14 17:09:09 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -12,12 +12,13 @@
 ###############################################################################
 # REQUIRED MODULES ############################################################
 import fnmatch
-import importlib
 import logging
 import os
 
 import pandas as pd
 from tqdm import tqdm
+
+from dvc_stage.utils import import_custom_function
 
 # MODULE GLOBAL VARIABLES #####################################################
 __LOGGER__ = logging.getLogger(__name__)
@@ -26,8 +27,7 @@ __LOGGER__ = logging.getLogger(__name__)
 # PRIVATE FUNCTIONS ###########################################################
 def _get_loading_function(format, import_from):
     if format == "custom":
-        module_name, function_name = import_from.rsplit(".", 1)
-        fn = getattr(importlib.import_module(module_name), function_name)
+        fn = import_custom_function(import_from)
     elif hasattr(pd, "read_" + format):
         fn = getattr(pd, "read_" + format)
     else:
