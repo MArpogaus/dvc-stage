@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 09:22:36 (Marcel Arpogaus)
+# changed : 2023-02-16 12:57:26 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -17,6 +17,7 @@ import os
 
 import pandas as pd
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from dvc_stage.utils import import_from_string
 
@@ -56,15 +57,22 @@ def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds
     if isinstance(paths, list):
         __LOGGER__.debug("got a list of paths")
         data = {}
-        if quiet:
-            it = paths
-        else:
-            it = tqdm(paths)
-        for p in it:
-            k = _get_data_key(p, key_map)
-            data[k] = load_data(
-                format=format, paths=p, key_map=key_map, import_from=import_from, **kwds
-            )
+
+        with logging_redirect_tqdm():
+            it = tqdm(paths, disable=quiet, leave=False)
+            for path in it:
+                k = _get_data_key(path, key_map)
+                __LOGGER__.debug(
+                    f"loading data from '{os.path.basename(path)}' as key '{k}'"
+                )
+                it.set_description(f"loading data as key '{k}'")
+                data[k] = load_data(
+                    format=format,
+                    paths=path,
+                    key_map=key_map,
+                    import_from=import_from,
+                    **kwds,
+                )
         return data
     else:
         if format is None:

@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:56 (Marcel Arpogaus)
-# changed : 2023-02-16 11:32:48 (Marcel Arpogaus)
+# changed : 2023-02-16 13:01:59 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -49,10 +49,11 @@ def _apply_validation(
 ):
     if isinstance(data, dict):
         __LOGGER__.debug("arg is dict")
-        it = tqdm(data.items())
+        it = tqdm(data.items(), leave=False)
         for key, df in it:
-            it.set_description(key)
-            __LOGGER__.debug(f"validating {key}")
+            description = f"validating df with key '{key}'"
+            __LOGGER__.debug(description)
+            it.set_description(description)
             if not key_is_skipped(key, include, exclude):
                 if pass_key_to_fn:
                     kwds.update({"key": key})
@@ -91,19 +92,6 @@ def _apply_validation(
 
 
 # PUBLIC FUNCTIONS ############################################################
-def apply_validations(data, validations):
-    __LOGGER__.debug("applying validations")
-    __LOGGER__.debug(validations)
-    it = tqdm(validations)
-    with logging_redirect_tqdm():
-        for kwds in it:
-            it.set_description(kwds.pop("description", kwds["id"]))
-            _apply_validation(
-                data=data,
-                **kwds,
-            )
-
-
 def validate_pandera_schema(data, schema, key=None):
     import pandera as pa
 
@@ -133,3 +121,16 @@ def validate_pandera_schema(data, schema, key=None):
 
     schema.validate(data)
     return True
+
+
+def apply_validations(data, validations):
+    __LOGGER__.debug("applying validations")
+    __LOGGER__.debug(validations)
+    it = tqdm(validations, leave=False)
+    with logging_redirect_tqdm():
+        for kwds in it:
+            it.set_description(kwds.pop("description", kwds["id"]))
+            _apply_validation(
+                data=data,
+                **kwds,
+            )

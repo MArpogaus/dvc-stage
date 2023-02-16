@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-14 15:29:39 (Marcel Arpogaus)
+# changed : 2023-02-16 12:44:16 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -87,10 +87,13 @@ def _run_stage(stage, validate=True):
     __LOGGER__.debug(stage_params)
 
     deps, _ = get_deps(stage_params["load"].pop("path"), global_params)
+
+    __LOGGER__.info("loading data")
     data = load_data(
         paths=deps,
         **stage_params["load"],
     )
+    __LOGGER__.info("all data loaded")
 
     transformations = stage_params.get("transformations", None)
     validations = stage_params.get("validations", None)
@@ -98,16 +101,22 @@ def _run_stage(stage, validate=True):
 
     if transformations is not None:
         assert write is not None, "No writer configured."
+        __LOGGER__.info("applying transformations")
         data = apply_transformations(data, transformations)
+        __LOGGER__.info("all transformations applied")
 
     if validations is not None:
+        __LOGGER__.info("applying validations")
         apply_validations(data, validations)
+        __LOGGER__.info("all validations passed")
 
     if write is not None:
+        __LOGGER__.info("writing data")
         write_data(
             data=data,
             **stage_params["write"],
         )
+        __LOGGER__.info("all data written")
 
 
 # PUBLIC FUNCTIONS ############################################################

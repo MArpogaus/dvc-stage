@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-16 10:52:42 (Marcel Arpogaus)
+# changed : 2023-02-16 12:51:25 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -164,18 +164,16 @@ def _apply_transformation(
     if isinstance(data, dict) and id != "combine":
         __LOGGER__.debug("arg is dict")
         results_dict = {}
-        if quiet:
-            it = data.items()
-        else:
-            it = tqdm(data.items())
+        it = tqdm(data.items(), disable=quiet, leave=False)
         for key, dat in it:
+            description = f"transforming df with key '{key}'"
+            __LOGGER__.debug(description)
+            it.set_description(description)
             if key_is_skipped(key, include, exclude):
                 __LOGGER__.debug(f"skipping transformation of DataFrame with key {key}")
                 transformed_data = dat
             else:
                 __LOGGER__.debug(f"transforming DataFrame with key {key}")
-                if not quiet:
-                    it.set_description(key)
                 if pass_key_to_fn:
                     kwds.update({"key": key})
                 transformed_data = _apply_transformation(
@@ -191,6 +189,7 @@ def _apply_transformation(
                 results_dict.update(transformed_data)
             else:
                 results_dict[key] = transformed_data
+        it.set_description("all transformations applied")
         return results_dict
     elif isinstance(data, dict) and id == "combine":
         __LOGGER__.debug("Combining data")
@@ -314,19 +313,13 @@ def add_date_offset_to_column(data, column, **kwds):
 
 def apply_transformations(data, transformations, quiet=False):
     __LOGGER__.disabled = quiet
-    if quiet:
-        it = transformations
-    else:
-        it = tqdm(transformations)
+    it = tqdm(transformations, disable=quiet, leave=False)
     __LOGGER__.debug("applying transformations")
     __LOGGER__.debug(transformations)
     with logging_redirect_tqdm():
         for kwds in it:
             desc = kwds.pop("description", kwds["id"])
-            if quiet:
-                __LOGGER__.debug(desc)
-            else:
-                it.set_description(desc)
+            it.set_description(desc)
             data = _apply_transformation(
                 data=data,
                 quiet=quiet,

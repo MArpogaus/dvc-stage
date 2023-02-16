@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 09:22:26 (Marcel Arpogaus)
+# changed : 2023-02-16 13:00:37 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -15,6 +15,7 @@ import logging
 import os
 
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from dvc_stage.utils import import_from_string
 
@@ -41,12 +42,17 @@ def write_data(data, format, path, import_from=None, **kwds):
 
     if isinstance(data, dict):
         __LOGGER__.debug("arg is dict")
-        for k, v in tqdm(data.items()):
-            write_data(
-                format=format,
-                data=v,
-                path=path.format(key=k),
-            )
+        it = tqdm(data.items(), leave=False)
+        with logging_redirect_tqdm():
+            for k, v in it:
+                formatted_path = path.format(key=k)
+                __LOGGER__.debug(f"writing df with key {k} to '{formatted_path}'")
+                it.set_description(f"writing df with key {k}")
+                write_data(
+                    format=format,
+                    data=v,
+                    path=formatted_path,
+                )
     else:
         __LOGGER__.debug(f"saving data to {path} as {format}")
         fn = _get_writing_function(data, format, import_from)
