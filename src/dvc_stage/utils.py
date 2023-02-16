@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-14 15:48:06 (Marcel Arpogaus)
+# changed : 2023-02-16 09:22:13 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -64,7 +64,7 @@ def get_deps(path, params):
     return deps, param_keys
 
 
-def import_custom_function(import_from):
+def import_from_string(import_from):
     module_name, function_name = import_from.rsplit(".", 1)
     fn = getattr(importlib.import_module(module_name), function_name)
     return fn

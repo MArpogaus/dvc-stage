@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-14 17:07:09 (Marcel Arpogaus)
+# changed : 2023-02-16 10:52:42 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -22,7 +22,7 @@ import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from dvc_stage.utils import import_custom_function, key_is_skipped
+from dvc_stage.utils import import_from_string, key_is_skipped
 
 # MODULE GLOBAL VARIABLES #####################################################
 __COLUMN_TRANSFORMER_CACHE__ = {}
@@ -93,57 +93,6 @@ def _id_split(
     return data[mask], data[~mask]
 
 
-def _split(
-    data: pd.DataFrame, by: str, left_split_key: str, right_split_key: str, **kwds
-) -> Dict[str, pd.DataFrame]:
-    """TODO describe function
-
-    :param data: data to split
-    :type data: pd.DataFrame
-    :param by: type of split
-    :type by: str
-    :param left_split_name: name for left split
-    :type left_split_name: str
-    :param right_split_name: name for right split
-    :type right_split_name: str
-    :returns:
-
-    """
-    if data is None:
-        __LOGGER__.debug("tracing split function")
-        return {left_split_key: None, right_split_key: None}
-    else:
-        if by == "id":
-            left_split, right_split = _id_split(data, **kwds)
-        elif by == "date_time":
-            left_split, right_split = _date_time_split(data, **kwds)
-        else:
-            raise ValueError(f"invalid choice for split: {by}")
-
-        return {left_split_key: left_split, right_split_key: right_split}
-
-
-def _combine(
-    data: List[pd.DataFrame], include, exclude, new_key="combined"
-) -> List[pd.DataFrame]:
-    to_combine = []
-    for key in list(data.keys()):
-        if not key_is_skipped(key, include, exclude):
-            to_combine.append(data.pop(key))
-
-    if to_combine[0] is None:
-        combined = None
-    else:
-        combined = pd.concat(to_combine)
-
-    if len(data) > 0:
-        data[new_key] = combined
-    else:
-        data = combined
-
-    return data
-
-
 def _initialize_sklearn_transformer(transformer_class_name, **kwds):
     if transformer_class_name in ("drop", "passthrough"):
         return transformer_class_name
@@ -187,52 +136,11 @@ def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
     return column_transformer
 
 
-def _column_transformer_fit(data: pd.DataFrame, dump_to_file=False, **kwds):
-    if data is None:
-        return None
-    else:
-        column_transfomer = _get_column_transformer(**kwds)
-        column_transfomer = column_transfomer.fit(data)
-
-        if dump_to_file is not None:
-            dirname = os.path.dirname(dump_to_file)
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
-            with open(dump_to_file, "wb+") as file:
-                pickle.dump(column_transfomer, file)
-
-        return data
-
-
-def _column_transformer_transform(data: pd.DataFrame, **kwds):
-    if data is None:
-        return None
-    else:
-        column_transfomer = _get_column_transformer(**kwds)
-        column_transfomer.set_output(transform="pandas")
-
-        columns_before = data.columns.copy()
-        data = column_transfomer.transform(data)[columns_before]
-        return data
-
-
-def _column_transformer_fit_transform(data: pd.DataFrame, dump_to_file=False, **kwds):
-    data = _column_transformer_fit(data, dump_to_file, **kwds)
-    data = _column_transformer_transform(data, **kwds)
-    return data
-
-
-def _add_date_offset_to_column(data, column, **kwds):
-    if data is not None:
-        data[column] += pd.offsets.DateOffset(**kwds)
-    return data
-
-
 def _get_transformation(data, id, import_from):
     if id == "custom":
-        fn = import_custom_function(import_from)
-    elif id in TRANSFORMATION_FUNCTIONS.keys():
-        fn = TRANSFORMATION_FUNCTIONS[id]
+        fn = import_from_string(import_from)
+    elif id in globals().keys():
+        fn = globals()[id]
     elif hasattr(data, id):
         fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa E731
     elif data is None and hasattr(pd.DataFrame, id):
@@ -244,7 +152,7 @@ def _get_transformation(data, id, import_from):
 
 def _apply_transformation(
     data,
-    id,
+    id: List[str],
     import_from=None,
     exclude=[],
     include=[],
@@ -286,7 +194,7 @@ def _apply_transformation(
         return results_dict
     elif isinstance(data, dict) and id == "combine":
         __LOGGER__.debug("Combining data")
-        return _combine(data, include, exclude, **kwds)
+        return combine(data, include, exclude, **kwds)
     else:
         __LOGGER__.debug(f"applying transformation: {id}")
         fn = _get_transformation(data, id, import_from)
@@ -294,6 +202,116 @@ def _apply_transformation(
 
 
 # PUBLIC FUNCTIONS ############################################################
+def split(
+    data: pd.DataFrame, by: str, left_split_key: str, right_split_key: str, **kwds
+) -> Dict[str, pd.DataFrame]:
+    """split data along index
+
+    :param data: data to split
+    :type data: pd.DataFrame
+    :param by: type of split
+    :type by: str
+    :param left_split_name: name for left split
+    :type left_split_name: str
+    :param right_split_name: name for right split
+    :type right_split_name: str
+    :returns:
+
+    """
+    if data is None:
+        __LOGGER__.debug("tracing split function")
+        return {left_split_key: None, right_split_key: None}
+    else:
+        if by == "id":
+            left_split, right_split = _id_split(data, **kwds)
+        elif by == "date_time":
+            left_split, right_split = _date_time_split(data, **kwds)
+        else:
+            raise ValueError(f"invalid choice for split: {by}")
+
+        return {left_split_key: left_split, right_split_key: right_split}
+
+
+def combine(
+    data: Dict[str, pd.DataFrame],
+    include: List[str],
+    exclude: List[str],
+    new_key: str = "combined",
+) -> List[pd.DataFrame]:
+    """concatenate multiple DataFrames
+
+    :param data: dict with data frames to concatenate
+    :type data: Dict[pd.DataFrame]
+    :param include: keys to include
+    :type include: List[str]
+    :param exclude: keys to exclude
+    :type exclude: List[str]
+    :param new_key: new key for concatenated data
+    :type new_key: str
+    :returns:
+
+    """
+    to_combine = []
+    for key in list(data.keys()):
+        if not key_is_skipped(key, include, exclude):
+            to_combine.append(data.pop(key))
+
+    if to_combine[0] is None:
+        combined = None
+    else:
+        combined = pd.concat(to_combine)
+
+    if len(data) > 0:
+        data[new_key] = combined
+    else:
+        data = combined
+
+    return data
+
+
+def column_transformer_fit(data: pd.DataFrame, dump_to_file: str = None, **kwds):
+    if data is None:
+        return None
+    else:
+        column_transfomer = _get_column_transformer(**kwds)
+        column_transfomer = column_transfomer.fit(data)
+
+        if dump_to_file is not None:
+            dirname = os.path.dirname(dump_to_file)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+            with open(dump_to_file, "wb+") as file:
+                pickle.dump(column_transfomer, file)
+
+        return data
+
+
+def column_transformer_transform(data: pd.DataFrame, **kwds):
+    if data is None:
+        return None
+    else:
+        column_transfomer = _get_column_transformer(**kwds)
+        column_transfomer.set_output(transform="pandas")
+
+        columns_before = data.columns.copy()
+        data = column_transfomer.transform(data)[columns_before]
+        return data
+
+
+def column_transformer_fit_transform(
+    data: pd.DataFrame, dump_to_file: str = None, **kwds
+):
+    data = column_transformer_fit(data, dump_to_file, **kwds)
+    data = column_transformer_transform(data, **kwds)
+    return data
+
+
+def add_date_offset_to_column(data, column, **kwds):
+    if data is not None:
+        data[column] += pd.offsets.DateOffset(**kwds)
+    return data
+
+
 def apply_transformations(data, transformations, quiet=False):
     __LOGGER__.disabled = quiet
     if quiet:
@@ -315,13 +333,3 @@ def apply_transformations(data, transformations, quiet=False):
                 **kwds,
             )
     return data
-
-
-# GLOBAL VARIABLES ############################################################
-TRANSFORMATION_FUNCTIONS = {
-    "split": _split,
-    "column_transformer_fit": _column_transformer_fit,
-    "column_transformer_fit_transform": _column_transformer_fit_transform,
-    "column_transformer_transform": _column_transformer_transform,
-    "add_date_offset_to_column": _add_date_offset_to_column,
-}

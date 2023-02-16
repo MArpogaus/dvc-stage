@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-14 17:09:39 (Marcel Arpogaus)
+# changed : 2023-02-16 09:22:26 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -16,7 +16,7 @@ import os
 
 from tqdm import tqdm
 
-from dvc_stage.utils import import_custom_function
+from dvc_stage.utils import import_from_string
 
 # MODULE GLOBAL VARIABLES #####################################################
 __LOGGER__ = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ __LOGGER__ = logging.getLogger(__name__)
 # PRIVATE FUNCTIONS ###########################################################
 def _get_writing_function(data, format, import_from):
     if format == "custom":
-        fn = import_custom_function(import_from)
+        fn = import_from_string(import_from)
     elif hasattr(data, "to_" + format):
         fn = lambda _, path: getattr(data, "to_" + format)(path)  # noqa E731
     else:

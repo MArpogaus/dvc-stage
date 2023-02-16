@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-14 17:09:09 (Marcel Arpogaus)
+# changed : 2023-02-16 09:22:36 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -18,7 +18,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from dvc_stage.utils import import_custom_function
+from dvc_stage.utils import import_from_string
 
 # MODULE GLOBAL VARIABLES #####################################################
 __LOGGER__ = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ __LOGGER__ = logging.getLogger(__name__)
 # PRIVATE FUNCTIONS ###########################################################
 def _get_loading_function(format, import_from):
     if format == "custom":
-        fn = import_custom_function(import_from)
+        fn = import_from_string(import_from)
     elif hasattr(pd, "read_" + format):
         fn = getattr(pd, "read_" + format)
     else:

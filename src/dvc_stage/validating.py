@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:56 (Marcel Arpogaus)
-# changed : 2023-02-14 16:13:06 (Marcel Arpogaus)
+# changed : 2023-02-16 11:32:48 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -17,7 +17,7 @@ import numpy as np
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from dvc_stage.utils import import_custom_function, key_is_skipped
+from dvc_stage.utils import import_from_string, key_is_skipped
 
 # MODULE GLOBAL VARIABLES #####################################################
 __LOGGER__ = logging.getLogger(__name__)
@@ -26,9 +26,11 @@ __LOGGER__ = logging.getLogger(__name__)
 # PRIVATE FUNCTIONS ###########################################################
 def _get_validation(id, data, import_from):
     if id == "custom":
-        fn = import_custom_function(import_from)
+        fn = import_from_string(import_from)
     elif hasattr(data, id):
         fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa E731
+    elif id in globals().keys():
+        fn = globals()[id]
     else:
         raise ValueError(f'validation function "{id}" not found')
     return fn
@@ -100,3 +102,34 @@ def apply_validations(data, validations):
                 data=data,
                 **kwds,
             )
+
+
+def validate_pandera_schema(data, schema, key=None):
+    import pandera as pa
+
+    if isinstance(schema, dict):
+        if "import_from" in schema.keys():
+            import_from = schema["import_from"]
+            schema = import_from_string(import_from)
+            if not isinstance(schema, pa.DataFrameSchema):
+                if callable(schema):
+                    schema = schema(key)
+                else:
+                    raise ValueError(
+                        f"Schema imported from {import_from} has invalid type: {type(schema)}"  # noqa E501
+                    )
+        elif "from_yaml" in schema.keys():
+            schema = pa.DataFrameSchema.from_yaml(schema["from_yaml"])
+        elif "from_json" in schema.keys():
+            schema = pa.DataFrameSchema.from_json(schema["from_json"])
+        else:
+            from pandera.io import deserialize_schema
+
+            schema = deserialize_schema(schema)
+    else:
+        raise ValueError(
+            f"Schema has invalid type '{type(schema)}', dictionary expected."
+        )
+
+    schema.validate(data)
+    return True
