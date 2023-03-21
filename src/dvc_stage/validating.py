@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:56 (Marcel Arpogaus)
-# changed : 2023-02-16 13:01:59 (Marcel Arpogaus)
+# changed : 2023-03-21 12:52:01 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -71,7 +71,15 @@ def _apply_validation(
         __LOGGER__.debug(f"applying validation: {id}")
         fn = _get_validation(id, data, import_from)
 
-        data = fn(data, **kwds)
+        try:
+            data = fn(data, **kwds)
+        except Exception as e:
+            __LOGGER__.exception(
+                f"Exception during execution of validation with id {id}."
+            )
+            __LOGGER__.critical(str(locals()), stack_info=True)
+            raise e
+
         if reduction == "any":
             reduced = np.any(data)
         elif reduction == "all":

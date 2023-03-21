@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-02-20 16:19:03 (Marcel Arpogaus)
+# changed : 2023-03-02 10:08:36 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -197,7 +197,14 @@ def _apply_transformation(
     else:
         __LOGGER__.debug(f"applying transformation: {id}")
         fn = _get_transformation(data, id, import_from)
-        return fn(data, **kwds)
+        try:
+            return fn(data, **kwds)
+        except Exception as e:
+            __LOGGER__.exception(
+                f"Exception during execution of transformation with id {id}."
+            )
+            __LOGGER__.critical(str(locals()), stack_info=True)
+            raise e
 
 
 # PUBLIC FUNCTIONS ############################################################
