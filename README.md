@@ -22,7 +22,7 @@
 
 ## About The Project
 
-This python script provides a easy and parameterizeable way of defining typical dvc stages for:
+This python script provides a easy and parameterizeable way of defining typical dvc (sub-)stages for:
 
 -   data prepossessing
 -   data transformation
