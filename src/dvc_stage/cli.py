@@ -37,11 +37,24 @@ __LOGGER__ = logging.getLogger(__name__)
 
 # PRIVATE FUNCTIONS ###########################################################
 def _print_stage_definition(stage):
+    """Print the stage definition for the specified DVC stage in YAML format.
+
+    Args:
+        :param stage: The name of the DVC stage to retrieve the definition for.
+        :type stage: str
+    """
     config = get_stage_definition(stage)
     print(yaml.dump(config))
 
 
 def _update_dvc_stage(stage):
+    """
+    Update the definition in the `dvc.yaml` file for the specified DVC stage.
+
+    Args:
+        :param: stage: The name of the DVC stage to update.
+        :type stage: str
+    """
     if stage_definition_is_valid(stage):
         __LOGGER__.info(f"stage definition of {stage} is up to date")
     else:
@@ -73,6 +86,9 @@ def _update_dvc_stage(stage):
 
 
 def _update_dvc_yaml():
+    """
+    Update all DVC stages defined in the `dvc.yaml` file.
+    """
     dvc_yaml = load_dvc_yaml()
     for stage, definition in dvc_yaml["stages"].items():
         if definition.get("cmd", "").startswith("dvc-stage"):
@@ -80,6 +96,14 @@ def _update_dvc_yaml():
 
 
 def _run_stage(stage, validate=True):
+    """
+    Load data, apply transformations, validate results, and write output data for the specified DVC stage.
+
+    Args:
+        :param stage: The name of the DVC stage to run.
+        :type stage: str
+        validate (bool, optional): Whether to validate the stage definition before running (default True).
+    """
     if validate:
         validate_stage_definition(stage)
 
@@ -121,6 +145,7 @@ def _run_stage(stage, validate=True):
 
 # PUBLIC FUNCTIONS ############################################################
 def cli():
+    """Define the command-line interface for this script."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--log-file",

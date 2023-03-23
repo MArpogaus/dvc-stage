@@ -25,6 +25,19 @@ __LOGGER__ = logging.getLogger(__name__)
 
 # PRIVATE FUNCTIONS ###########################################################
 def _get_writing_function(data, format, import_from):
+    """
+    Returns a writing function for a given data format.
+    
+    :param data: The data to be written.
+    :type data: Any
+    :param format: The format to write the data in.
+    :type format: str
+    :param import_from: The module path for the custom writing function (default: None).
+    :type import_from: Optional[str]
+    :return: The writing function.
+    :rtype: Callable
+    :raises ValueError: If the writing function for the given format is not found.
+    """
     if format == "custom":
         fn = import_from_string(import_from)
     elif hasattr(data, "to_" + format):
@@ -36,6 +49,20 @@ def _get_writing_function(data, format, import_from):
 
 # PUBLIC FUNCTIONS ############################################################
 def write_data(data, format, path, import_from=None, **kwds):
+    """
+    Write data to a file. Main entrypoint for writing substage.
+
+    :param data: The data to be written.
+    :type data: Union[pandas.DataFrame, Dict[str, pandas.DataFrame]]
+    :param format: The format of the output file.
+    :type format: str
+    :param path: The path to write the file to.
+    :type path: str
+    :param import_from: The module path of a custom writing function.
+    :type import_from: Optional[str]
+    :param kwds: Additional keyword arguments passed to the writing function.
+    :type kwds: Any
+    """
     dirname = os.path.dirname(path)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
@@ -60,6 +87,18 @@ def write_data(data, format, path, import_from=None, **kwds):
 
 
 def get_outs(data, path, **kwds):
+    """
+    Get list of output paths based on input data.
+
+    :param data: Input data
+    :type data: Union[List, Dict, pd.DataFrame]
+    :param path: Output path template string
+    :type path: str
+    :param **kwds: Additional keyword arguments
+    :type **kwds: dict
+    :return: List of output paths
+    :rtype: List[str]
+    """
     outs = []
 
     if isinstance(data, list):

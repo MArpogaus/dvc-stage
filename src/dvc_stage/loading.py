@@ -27,6 +27,18 @@ __LOGGER__ = logging.getLogger(__name__)
 
 # PRIVATE FUNCTIONS ###########################################################
 def _get_loading_function(format, import_from):
+    """
+    Get the loading function for a given file-format.
+
+    Args:
+        :param format: the file-format to load the data from.
+        :type format: str
+        :param import_from: module name or path where the custom loading function is located.
+        :type import_from: str
+
+    Returns:
+        :return: (function): the loading function for the given format.
+    """
     if format == "custom":
         fn = import_from_string(import_from)
     elif hasattr(pd, "read_" + format):
@@ -37,6 +49,19 @@ def _get_loading_function(format, import_from):
 
 
 def _get_data_key(path, key_map):
+    """
+    Private function to get the data key from a file path.
+
+    Args:
+        :param path: the file path.
+        :type path: str
+        :param key_map: a mapping from filename patterns to data keys.
+        :type key_map: dict
+
+    Returns:
+        :return: the data key associated with the file path.
+        :rtype: str
+    """
     k = os.path.basename(path)
     k = os.path.splitext(k)[0]
     if key_map:
@@ -51,6 +76,26 @@ def _get_data_key(path, key_map):
 
 # PUBLIC FUNCTIONS ############################################################
 def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds):
+    """
+    Load data from one or more files. Executes substage "loading".
+
+    Args:
+        :param format: the format to load the data from.
+        :type format: str
+        :param paths: the file path(s) to load the data from.
+        :type paths: str or list
+        :param key_map: a mapping from filename patterns to data keys.
+        :type key_map: dict
+        :param import_from: module name or path where the custom loading function is located.
+        :type import_from: str
+        :param quiet: whether to disable logging messages or not.
+        :type quiet: bool
+        :param **kwds: additional keyword arguments to pass to the loading function.
+        :type **kwds: object
+
+    Returns:
+     :return: (object or dict): the loaded data, either as a single object or a dictionary of objects.
+    """
     __LOGGER__.disabled = quiet
     if len(paths) == 1:
         paths = paths[0]

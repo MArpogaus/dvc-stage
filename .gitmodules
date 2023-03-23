@@ -1,0 +1,3 @@
+[submodule "examples"]
+	path = examples
+	url = git@gitlab.ei.htwg-konstanz.de:ag-schubert/workspace/julian/dvc-stage-example.git
