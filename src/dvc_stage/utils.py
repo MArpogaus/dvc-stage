@@ -11,6 +11,7 @@
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""utils module."""
 import glob
 import importlib
 import logging
@@ -23,14 +24,14 @@ __LOGGER__ = logging.getLogger(__name__)
 
 # PRIVATE FUNCTIONS ###########################################################
 def _parse_path(path, params) -> Dict:
-    """
-    Parses a path string and replaces ${PLACEHOLDERS}" with values from a dictionary.
+    """Parse a path and replace ${PLACEHOLDERS}" with values from dict.
 
     :param path: The path string to parse.
     :type path: str
     :param params: A dictionary of parameter values to replace placeholders.
     :type params: Dict[str, Any]
-    :return: A tuple containing the parsed path string and a set of the matched parameter names.
+    :return: A tuple containing the parsed path string and a set of the
+    matched parameter names.
     :rtype: Tuple[str, Set[str]]
     """
     pattern = re.compile(r"\${([a-z]+)}")  # noqa: W605
@@ -42,8 +43,7 @@ def _parse_path(path, params) -> Dict:
 
 # PUBLIC FUNCTIONS ############################################################
 def flatten_dict(d, parent_key="", sep="."):
-    """
-    Recursively flattens a nested dictionary into a single-level dictionary.
+    """Recursively flatten a nested dictionary into a single-level dictionary.
 
     :param d: The dictionary to flatten.
     :type d: dict
@@ -65,15 +65,17 @@ def flatten_dict(d, parent_key="", sep="."):
 
 
 def get_deps(path, params):
-def get_deps(path: Union[str, List[str]], params: Dict[str, Any]) -> Tuple[List[str], Set[str]]:
     """
     Get dependencies given a path pattern and parameter values.
 
     :param path: A string or list of strings representing file paths.
     :type path: Union[str, List[str]]
-    :param params: A dictionary containing parameter values to substitute in the `path` string.
+    :param params: A dictionary containing parameter values to substitute in
+    the `path` string.
     :type params: Dict[str, Any]
-    :return: A tuple containing two elements: A list of file paths matching the specified `path` pattern, and a set of parameter keys used in the `path` pattern.
+    :return: A tuple containing two elements: A list of file paths matching
+    the specified `path` pattern, and a set of parameter keys used
+    in the `path` pattern.
     :rtype: Tuple[List[str], Set[str]]
     """
     deps = []
@@ -98,7 +100,6 @@ def get_deps(path: Union[str, List[str]], params: Dict[str, Any]) -> Tuple[List[
 
 
 def import_from_string(import_from):
-    def import_from_string(import_from: str) -> Callable:
     """
     Import and return a callable function by name.
 

@@ -11,6 +11,7 @@
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""writing module."""
 import logging
 import os
 
@@ -25,9 +26,8 @@ __LOGGER__ = logging.getLogger(__name__)
 
 # PRIVATE FUNCTIONS ###########################################################
 def _get_writing_function(data, format, import_from):
-    """
-    Returns a writing function for a given data format.
-    
+    """Return a writing function for a given data format.
+
     :param data: The data to be written.
     :type data: Any
     :param format: The format to write the data in.
