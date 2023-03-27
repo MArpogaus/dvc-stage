@@ -11,6 +11,7 @@
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""cli module."""
 import argparse
 import difflib
 import logging
@@ -86,9 +87,7 @@ def _update_dvc_stage(stage):
 
 
 def _update_dvc_yaml():
-    """
-    Update all DVC stages defined in the `dvc.yaml` file.
-    """
+    """Update all DVC stages defined in the `dvc.yaml` file."""
     dvc_yaml = load_dvc_yaml()
     for stage, definition in dvc_yaml["stages"].items():
         if definition.get("cmd", "").startswith("dvc-stage"):
@@ -97,12 +96,13 @@ def _update_dvc_yaml():
 
 def _run_stage(stage, validate=True):
     """
-    Load data, apply transformations, validate results, and write output data for the specified DVC stage.
+    Load, apply transformations, validate and write output.
 
     Args:
         :param stage: The name of the DVC stage to run.
         :type stage: str
-        validate (bool, optional): Whether to validate the stage definition before running (default True).
+        validate (bool, optional): Whether to validate the stage definition
+        before running (default True).
     """
     if validate:
         validate_stage_definition(stage)

@@ -11,6 +11,7 @@
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""validating module."""
 import logging
 
 import numpy as np
@@ -25,14 +26,14 @@ __LOGGER__ = logging.getLogger(__name__)
 
 # PRIVATE FUNCTIONS ###########################################################
 def _get_validation(id, data, import_from):
-    """
-    Returns the validation function with the given ID.
+    """Return the validation function with the given ID.
 
     :param id: ID of the validation function to get.
     :type id: str
     :param data: Data source to be validated.
     :type data: Any
-    :param import_from: Import path to the custom validation function (if ``id="custom"``), defaults to None.
+    :param import_from: Import path to the custom validation function
+    (if ``id="custom"``), defaults to None.
     :type import_from: Optional[str], optional
     :raises ValueError: If the validation function with the given ID is not found.
     :return: The validation function.
@@ -60,41 +61,54 @@ def _apply_validation(
     pass_key_to_fn=False,
     **kwds,
 ):
-        """
-    Apply a validation function to a given data. 
-    
-    :param data: The data to be validated. It can be a DataFrame or a dictionary of DataFrames.
+    """
+    Apply a validation function to a given data.
+
+    :param data: The data to be validated. It can be a DataFrame or a
+    dictionary of DataFrames.
     :type data: Union[pd.DataFrame, Dict[str, pd.DataFrame]]
-    
-    :param id: The identifier for the validation function to be applied. If 'custom', import_from is used as the function name.
+
+    :param id: The identifier for the validation function to be applied.
+    If 'custom', import_from is used as the function name.
     :type id: str
-    
-    :param import_from: The module path of the custom validation function to be imported.
+
+    :param import_from: The module path of the custom validation function
+    to be imported.
     :type import_from: Optional[str]
-    
-    :param reduction: The method used to reduce the boolean result of the validation function. 
-        It can be 'any', 'all' or 'none'. 
-        If 'any', the data will be considered valid if at least one of the rows or columns is valid.
-        If 'all', the data will be considered valid only if all rows or columns are valid.
-        If 'none', the data will not be reduced and the validation output will be returned in full. 
+
+    :param reduction: The method used to reduce the boolean result of the
+    validation function.
+        It can be 'any', 'all' or 'none'.
+        If 'any', the data will be considered valid if at least one of the
+        rows or columns is valid.
+        If 'all', the data will be considered valid only if all rows or
+        columns are valid.
+        If 'none', the data will not be reduced and the validation output
+        will be returned in full.
     :type reduction: str
-    
-    :param expected: The expected output of the validation. 
+
+    :param expected: The expected output of
+    the validation.
     :type expected: bool
-    
-    :param include: List of keys to include in the validation. If empty, all keys will be included.
+
+    :param include: List of keys to include in the validation.
+    If empty, all keys will be included.
     :type include: List[str]
-    
+
     :param exclude: List of keys to exclude from the validation.
     :type exclude: List[str]
-    
-    :param pass_key_to_fn: Flag to indicate if the key should be passed to the validation function.
+
+    :param pass_key_to_fn: Flag to indicate if the key should be passed to
+    the validation function.
     :type pass_key_to_fn: bool
-    
-    :param kwds: Additional keyword arguments to be passed to the validation function.
-    
-    :raises ValueError: If the validation function with the given identifier is not found.
-    :raises AssertionError: If the validation output does not match the expected output.
+
+    :param kwds: Additional keyword arguments to be passed to
+    the validation function.
+
+    :raises ValueError: If the validation function with the given identifier
+    is not found.
+    :raises AssertionError: If the validation output does not match
+    the expected output.
     """
     if isinstance(data, dict):
         __LOGGER__.debug("arg is dict")
@@ -147,13 +161,17 @@ def validate_pandera_schema(data, schema, key=None):
 
     :param data: Pandas DataFrame to be validated.
     :type data: pandas.DataFrame
-    :param schema: Schema to validate against. Can be specified as a dictionary with keys "import_from", "from_yaml", "from_json" or a string that specifies a file path to a serialized Pandera schema object.
+    :param schema: Schema to validate against.
+    Can be specified as a dictionary with keys
+    "import_from", "from_yaml", "from_json" or a string that specifies
+    a file path to a serialized Pandera schema object.
     :type schema: Union[dict, str]
     :param key: Optional key to be passed to the Pandera schema function.
     :type key: Optional[str]
     :return: Returns True if the DataFrame validates against the schema.
     :rtype: bool
-    :raises ValueError: If the schema is of an invalid type or if the schema cannot be deserialized from the provided dictionary or file.
+    :raises ValueError: If the schema is of an invalid type or if the schema
+    cannot be deserialized from the provided dictionary or file.
     """
     import pandera as pa
 

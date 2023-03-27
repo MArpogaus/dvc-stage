@@ -11,6 +11,7 @@
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""config module."""
 import logging
 
 import dvc.api
@@ -116,7 +117,7 @@ def validate_stage_definition(stage):
     Args:
         :param stage: The name of the dvc stage.
         :type stage: str
-        
+
     Note:
         :raises AssertionError: if invalid
     """
@@ -134,7 +135,8 @@ def get_stage_params(stage, all=False):
         :param all : If True, retrieve all stages' parameters. Defaults to False.
 
     Returns:
-        :return: tuple: A tuple (stage_params, global_params) containing the stage parameters and global parameters as dictionaries.
+        :return: tuple: A tuple (stage_params, global_params) containing the
+        stage parameters and global parameters as dictionaries.
     """
     params = dvc.api.params_show(stages=None if all else stage)
     stage_params = params[stage]

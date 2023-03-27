@@ -11,6 +11,7 @@
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""loading module."""
 import fnmatch
 import logging
 import os
@@ -33,7 +34,8 @@ def _get_loading_function(format, import_from):
     Args:
         :param format: the file-format to load the data from.
         :type format: str
-        :param import_from: module name or path where the custom loading function is located.
+        :param import_from: module name or path where the custom loading function
+        is located.
         :type import_from: str
 
     Returns:
@@ -86,7 +88,8 @@ def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds
         :type paths: str or list
         :param key_map: a mapping from filename patterns to data keys.
         :type key_map: dict
-        :param import_from: module name or path where the custom loading function is located.
+        :param import_from: module name or path where the custom loading
+        function is located.
         :type import_from: str
         :param quiet: whether to disable logging messages or not.
         :type quiet: bool
@@ -94,7 +97,8 @@ def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds
         :type **kwds: object
 
     Returns:
-     :return: (object or dict): the loaded data, either as a single object or a dictionary of objects.
+     :return: (object or dict): the loaded data, either as a single object or
+     a dictionary of objects.
     """
     __LOGGER__.disabled = quiet
     if len(paths) == 1:
