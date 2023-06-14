@@ -74,9 +74,9 @@ STAGE_NAME:
 
 The `load` and `write` sections both require the yaml-keys `path` and `format` to read and save data respectively.
 
-The `transformations` and `validations` sections require a sequence of functions to apply, where `transformations` return data and `validations` return a truth value (derived from data). 
+The `transformations` and `validations` sections require a sequence of functions to apply, where `transformations` return data and `validations` return a truth value (derived from data).
 Functions are defined by the key `id` an can be either:
- - Methods defined on Pandas Dataframes, e.g. 
+ - Methods defined on Pandas Dataframes, e.g.
    ```yaml
    transformations:
    - id: transpose
@@ -95,7 +95,7 @@ Functions are defined by the key `id` an can be either:
      schema:
      import_from: demo.get_schema
    ```
-   
+
 When writing a custom function, you need to make sure the function gracefully handles data being `None`, which is required for type inference. Data is passed as first argument. Further arguments can be provided as additional keys, as shown above for `validate_pandera_schema`, where schema is passed as second argument to the function.
 
 
