@@ -20,8 +20,6 @@ jobs:
         py:
         - '3.10'
         - '3.9'
-        - '3.8'
-        - '3.7'
         os:
         - ubuntu-latest
         - macos-latest
@@ -42,5 +40,5 @@ jobs:
     - name: Run example
       run: |
         cd examples
-        pip Install .
+        pip install .
         dvc repro
