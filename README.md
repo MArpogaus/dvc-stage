@@ -1,3 +1,7 @@
+![example workflow](https://github.com/MArpogaus/dvc-stage/actions/workflows/pre-commit.yml/badge.svg)
+![example workflow](https://github.com/MArpogaus/dvc-stage/actions/workflows/run_demo.yaml/badge.svg)
+![example workflow](https://github.com/MArpogaus/dvc-stage/actions/workflows/tox-gh.yaml/badge.svg)
+
 [![img](https://img.shields.io/github/contributors/MArpogaus/dvc-stage.svg?style=flat-square)](https://github.com/MArpogaus/dvc-stage/graphs/contributors)
 [![img](https://img.shields.io/github/forks/MArpogaus/dvc-stage.svg?style=flat-square)](https://github.com/MArpogaus/dvc-stage/network/members)
 [![img](https://img.shields.io/github/stars/MArpogaus/dvc-stage.svg?style=flat-square)](https://github.com/MArpogaus/dvc-stage/stargazers)
