@@ -7,7 +7,7 @@ on:
   - cron: 0 8 * * *
 
 concurrency:
-  group: check-${{ github.ref }}
+  group: demo-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
