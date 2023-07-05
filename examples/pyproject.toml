@@ -1,0 +1,7 @@
+[project]
+# ...
+dependencies = [
+  "pandera~=0.15.0"
+]
+name = "demo"
+version = "1.2.3"

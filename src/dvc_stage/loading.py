@@ -4,78 +4,129 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-12-13 14:58:14 (Marcel Arpogaus)
+# changed : 2023-02-16 12:57:26 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
-import glob
+"""loading module."""
+import fnmatch
 import logging
 import os
 
 import pandas as pd
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
+
+from dvc_stage.utils import import_from_string
+
+# MODULE GLOBAL VARIABLES #####################################################
+__LOGGER__ = logging.getLogger(__name__)
 
 
 # PRIVATE FUNCTIONS ###########################################################
-def _load_feather(path: str) -> pd.DataFrame:
-    """load data from feather file
-
-    :param path: path to feather file
-    :type path: str
-    :returns: pd.DataFrame
-
+def _get_loading_function(format, import_from):
     """
-    logging.info(f"loading data from {path}")
-    data = pd.read_feather(path)
-    return data
+    Get the loading function for a given file-format.
+
+    Args:
+        :param format: the file-format to load the data from.
+        :type format: str
+        :param import_from: module name or path where the custom loading function
+        is located.
+        :type import_from: str
+
+    Returns:
+        :return: (function): the loading function for the given format.
+    """
+    if format == "custom":
+        fn = import_from_string(import_from)
+    elif hasattr(pd, "read_" + format):
+        fn = getattr(pd, "read_" + format)
+    else:
+        raise ValueError(f'loading function for format "{format}" not found')
+    return fn
+
+
+def _get_data_key(path, key_map):
+    """
+    Private function to get the data key from a file path.
+
+    Args:
+        :param path: the file path.
+        :type path: str
+        :param key_map: a mapping from filename patterns to data keys.
+        :type key_map: dict
+
+    Returns:
+        :return: the data key associated with the file path.
+        :rtype: str
+    """
+    k = os.path.basename(path)
+    k = os.path.splitext(k)[0]
+    if key_map:
+        for pat, key in key_map.items():
+            match = fnmatch.fnmatch(path, pat)
+            if match:
+                k = key
+                break
+    __LOGGER__.debug(f'using key "{k}" for file "{path}"')
+    return k
 
 
 # PUBLIC FUNCTIONS ############################################################
-def get_deps(path):
-    deps = []
-    if isinstance(path, list):
-        for p in path:
-            deps += get_deps(p)
-        deps = list(sorted(set(deps)))
-    else:
-        deps = glob.glob(path)
+def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds):
+    """
+    Load data from one or more files. Executes substage "loading".
 
-    assert (
-        len(deps) > 0
-    ), f'Dependencies not found for path "{path}".\nIs DVC Pipeline up to date?'
-    return deps
+    Args:
+        :param format: the format to load the data from.
+        :type format: str
+        :param paths: the file path(s) to load the data from.
+        :type paths: str or list
+        :param key_map: a mapping from filename patterns to data keys.
+        :type key_map: dict
+        :param import_from: module name or path where the custom loading
+        function is located.
+        :type import_from: str
+        :param quiet: whether to disable logging messages or not.
+        :type quiet: bool
+        :param **kwds: additional keyword arguments to pass to the loading function.
+        :type **kwds: object
 
+    Returns:
+     :return: (object or dict): the loaded data, either as a single object or
+     a dictionary of objects.
+    """
+    __LOGGER__.disabled = quiet
+    if len(paths) == 1:
+        paths = paths[0]
+    if isinstance(paths, list):
+        __LOGGER__.debug("got a list of paths")
+        data = {}
 
-def load_data(format, path, as_dict=False, **kwds):
-    path = get_deps(path)
-    if len(path) == 1:
-        path = path[0]
-    if isinstance(path, list):
-        logging.debug("got a list of paths")
-        if as_dict:
-            data = {}
-            for p in tqdm(path):
-                k = os.path.basename(p)
+        with logging_redirect_tqdm():
+            it = tqdm(paths, disable=quiet, leave=False)
+            for path in it:
+                k = _get_data_key(path, key_map)
+                __LOGGER__.debug(
+                    f"loading data from '{os.path.basename(path)}' as key '{k}'"
+                )
+                it.set_description(f"loading data as key '{k}'")
                 data[k] = load_data(
                     format=format,
-                    path=p,
-                )
-        else:
-            data = []
-            for p in tqdm(path):
-                data.append(
-                    load_data(
-                        format=format,
-                        path=p,
-                    )
+                    paths=path,
+                    key_map=key_map,
+                    import_from=import_from,
+                    **kwds,
                 )
         return data
     else:
-        return DATA_LOAD_FUNCTIONS[format](path, **kwds)
-
-
-# GLOBAL VARIABLES ############################################################
-DATA_LOAD_FUNCTIONS = {"feather": _load_feather}
+        if format is None:
+            return None
+        else:
+            __LOGGER__.debug(f"loading data from {paths}")
+            fn = _get_loading_function(format, import_from)
+            return fn(paths, **kwds)

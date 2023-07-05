@@ -4,173 +4,129 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-12-13 13:23:00 (Marcel Arpogaus)
+# changed : 2023-02-16 09:22:13 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""utils module."""
+import glob
 import importlib
 import logging
+import re
+from typing import Dict
 
-import dvc.api
-import yaml
-
-import dvc_stage
-from dvc_stage.loading import get_deps, load_data
-from dvc_stage.transforming import apply_transformations, trace_transformations
-from dvc_stage.validating import apply_validations
-from dvc_stage.writing import get_outs, write_data
+# MODULE GLOBAL VARIABLES #####################################################
+__LOGGER__ = logging.getLogger(__name__)
 
 
 # PRIVATE FUNCTIONS ###########################################################
-def _flatten_dict(d, parent_key="", sep="."):
+def _parse_path(path, params) -> Dict:
+    """Parse a path and replace ${PLACEHOLDERS}" with values from dict.
+
+    :param path: The path string to parse.
+    :type path: str
+    :param params: A dictionary of parameter values to replace placeholders.
+    :type params: Dict[str, Any]
+    :return: A tuple containing the parsed path string and a set of the
+    matched parameter names.
+    :rtype: Tuple[str, Set[str]]
+    """
+    pattern = re.compile(r"\${([a-z]+)}")  # noqa: W605
+    matches = set(re.findall(pattern, path))
+    for g in matches:
+        path = path.replace("${" + g + "}", params[g])
+    return path, matches
+
+
+# PUBLIC FUNCTIONS ############################################################
+def flatten_dict(d, parent_key="", sep="."):
+    """Recursively flatten a nested dictionary into a single-level dictionary.
+
+    :param d: The dictionary to flatten.
+    :type d: dict
+    :param parent_key: The parent key for the current level of the dictionary.
+    :type parent_key: str
+    :param sep: The separator to use between keys.
+    :type sep: str
+    :return: The flattened dictionary.
+    :rtype: dict
+    """
     items = []
     for k, v in d.items():
         new_key = sep.join((parent_key, k)) if parent_key else k
         if isinstance(v, dict) and len(v):
-            items.extend(_flatten_dict(v, new_key, sep=sep).items())
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
         else:
             items.append((new_key, v))
     return dict(items)
 
 
-def _load_extra_modules(extra_modules):
-    for module_name in extra_modules:
-        module = importlib.import_module(module_name)
-        dvc_stage.loading.DATA_LOAD_FUNCTIONS.update(
-            getattr(module, "DATA_LOAD_FUNCTIONS", {})
-        )
-        dvc_stage.transforming.TRANSFORMATION_FUNCTIONS.update(
-            getattr(module, "TRANSFORMATION_FUNCTIONS", {})
-        )
-        dvc_stage.validating.VALIDATION_FUNCTIONS.update(
-            getattr(module, "VALIDATION_FUNCTIONS", {})
-        )
-        dvc_stage.writing.DATA_WRITE_FUNCTIONS.update(
-            getattr(module, "DATA_WRITE_FUNCTIONS", {})
-        )
+def get_deps(path, params):
+    """
+    Get dependencies given a path pattern and parameter values.
 
-
-def _load_dvc_yaml():
-    logging.debug("loading dvc.yaml")
-    with open("dvc.yaml", "r") as f:
-        dvc_yaml = yaml.safe_load(f)
-    logging.debug(dvc_yaml)
-    return dvc_yaml
-
-
-def _check_dvc_yaml(stage):
-    dvc_yaml = _load_dvc_yaml()["stages"][stage]
-    logging.debug(f"dvc.yaml:\n{yaml.dump(dvc_yaml)}")
-    config = _get_dvc_config(stage)["stages"][stage]
-    if stage in dvc_yaml["cmd"]:
-        config["cmd"] = dvc_yaml["cmd"]
-    logging.debug(f"expected:\n{yaml.dump(config)}")
-
-    return dvc_yaml == config
-
-
-def _validate_dvc_yaml(stage):
-    logging.debug("validating dvc.yaml")
-    assert _check_dvc_yaml(stage), f"dvc.yaml for {stage} is invalid."
-
-
-def _get_dvc_config(stage):
-    logging.debug(f"tracing dvc stage: {stage}")
-    params = dvc.api.params_show()[stage]
-    logging.debug(params)
-    if "extra_modules" in params.keys():
-        _load_extra_modules(params["extra_modules"])
-
-    deps = get_deps(params["load"]["path"])
-
-    config = params.get("extra_stage_fields", {})
-    config.update(
-        {
-            "cmd": f"dvc-stage run {stage}",
-            "deps": deps,
-            "params": list(_flatten_dict(params, parent_key=stage).keys()),
-            "meta": {"dvc-stage-version": dvc_stage.__version__},
-        }
-    )
-    transformations = params.get("transformations", None)
-    write = params.get("write", None)
-
-    if transformations is not None:
-        assert write is not None, "No writer configured."
-        data = trace_transformations(transformations)
-        outs = get_outs(data, **write)
-        config["outs"] = outs
-    config = {"stages": {stage: config}}
-    return config
-
-
-# PUBLIC FUNCTIONS ############################################################
-def print_stage_config(stage):
-    config = _get_dvc_config(stage)
-    print(yaml.dump(config))
-
-
-def update_dvc_stage(stage):
-    if _check_dvc_yaml(stage):
-        logging.info(f"stage definition of {stage} is up to date")
+    :param path: A string or list of strings representing file paths.
+    :type path: Union[str, List[str]]
+    :param params: A dictionary containing parameter values to substitute in
+    the `path` string.
+    :type params: Dict[str, Any]
+    :return: A tuple containing two elements: A list of file paths matching
+    the specified `path` pattern, and a set of parameter keys used
+    in the `path` pattern.
+    :rtype: Tuple[List[str], Set[str]]
+    """
+    deps = []
+    param_keys = set()
+    if isinstance(path, list):
+        for p in path:
+            rdeps, rparam_keys = get_deps(p, params)
+            deps += rdeps
+            param_keys |= rparam_keys
     else:
-        logging.info("updating dvc.yaml")
-        dvc_yaml = _load_dvc_yaml()
-        config = _get_dvc_config(stage)["stages"][stage]
-        if stage in dvc_yaml["stages"][stage]["cmd"]:
-            config["cmd"] = dvc_yaml["stages"][stage]["cmd"]
+        path, matches = _parse_path(path, params)
+        param_keys |= matches
+        deps = glob.glob(path)
 
-        logging.info(f"before:\n{yaml.dump(dvc_yaml['stages'][stage])}")
-        logging.info(f"after update:\n{yaml.dump(config)}")
-        logging.warn("This will alter your dvc.yaml")
-        answer = input("type [y]es to continue: ")
+    deps = list(sorted(set(deps)))
 
-        if answer.lower() in ["y", "yes"]:
-            dvc_yaml["stages"][stage] = config
-            with open("dvc.yaml", "w") as f:
-                yaml.dump(dvc_yaml, f, sort_keys=False)
-            logging.info("dvc.yaml successfully updated")
-        else:
-            logging.error("Operation canceled by user")
-            exit(1)
+    assert (
+        len(deps) > 0
+    ), f'Dependencies not found for path "{path}".\nIs DVC Pipeline up to date?'
+
+    return deps, param_keys
 
 
-def update_dvc_yaml():
-    dvc_yaml = _load_dvc_yaml()
-    for stage, definition in dvc_yaml["stages"].items():
-        if definition.get("cmd", "").startswith("dvc-stage"):
-            update_dvc_stage(stage)
+def import_from_string(import_from):
+    """
+    Import and return a callable function by name.
+
+    :param import_from: A string representing the fully qualified name of the function.
+    :type import_from: str
+
+    :return: A callable function.
+    :rtype: Callable
+    """
+    module_name, function_name = import_from.rsplit(".", 1)
+    fn = getattr(importlib.import_module(module_name), function_name)
+    return fn
 
 
-def run_stage(stage, validate=True):
-    if validate:
-        _validate_dvc_yaml(stage)
-    params = dvc.api.params_show(stages=stage)[stage]
-    logging.debug(params)
+def key_is_skipped(key, include, exclude):
+    """
+    Check if a key should be skipped based on include and exclude lists.
 
-    if "extra_modules" in params.keys():
-        _load_extra_modules(params["extra_modules"])
-
-    data = load_data(
-        **params["load"],
-    )
-
-    transformations = params.get("transformations", None)
-    validations = params.get("validations", None)
-    write = params.get("write", None)
-
-    if transformations is not None:
-        assert write is not None, "No writer configured."
-        data = apply_transformations(data, transformations)
-
-    if validations is not None:
-        apply_validations(data, validations)
-
-    if write is not None:
-        write_data(
-            data=data,
-            **params["write"],
-        )
+    :param key: The key to check.
+    :type key: str
+    :param include: The list of keys to include. If empty, include all keys.
+    :type include: List[str]
+    :param exclude: The list of keys to exclude. If empty, exclude no keys.
+    :type exclude: List[str]
+    :return: True if the key should be skipped, False otherwise.
+    :rtype: bool
+    """
+    cond = (key in exclude) or (len(include) > 0 and key not in include)
+    __LOGGER__.debug(f'key "{key}" is {"" if cond else "not "}skipped')
+    return cond

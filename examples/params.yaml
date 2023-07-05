@@ -1,0 +1,30 @@
+log_level: debug
+empty_param: []
+demo_pipeline:
+  load:
+    path: load.csv
+    format: csv
+  transformations:
+  - id: custom
+    description: duplikate rows
+    import_from: demo.duplicate
+  - id: transpose
+  - id: rename
+    columns:
+      0.0: O1
+      1.0: O2
+      2.0: D1
+      3.0: D2
+  validations:
+  - id: custom
+    description: check none
+    import_from: demo.isNotNone
+  - id: isnull
+    reduction: any
+    expected: false
+  - id: validate_pandera_schema
+    schema:
+      import_from: demo.get_schema
+  write:
+    format: csv
+    path: outdir/out.csv

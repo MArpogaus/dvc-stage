@@ -4,27 +4,148 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2022-11-29 10:46:01 (Marcel Arpogaus)
+# changed : 2023-02-16 12:44:16 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
 # ...
 ###############################################################################
 # REQUIRED MODULES ############################################################
+"""cli module."""
 import argparse
+import difflib
 import logging
 import sys
 
-from dvc_stage.utils import (
-    print_stage_config,
-    run_stage,
-    update_dvc_stage,
-    update_dvc_yaml,
+import yaml
+
+from dvc_stage.config import (
+    get_stage_definition,
+    get_stage_params,
+    load_dvc_yaml,
+    stage_definition_is_valid,
+    validate_stage_definition,
 )
+from dvc_stage.loading import load_data
+from dvc_stage.transforming import apply_transformations
+from dvc_stage.utils import get_deps
+from dvc_stage.validating import apply_validations
+from dvc_stage.writing import write_data
+
+# MODULE GLOBAL VARIABLES #####################################################
+__LOGGER__ = logging.getLogger(__name__)
 
 
-# FUNCTION DEFINITIONS ########################################################
+# PRIVATE FUNCTIONS ###########################################################
+def _print_stage_definition(stage):
+    """Print the stage definition for the specified DVC stage in YAML format.
+
+    Args:
+        :param stage: The name of the DVC stage to retrieve the definition for.
+        :type stage: str
+    """
+    config = get_stage_definition(stage)
+    print(yaml.dump(config))
+
+
+def _update_dvc_stage(stage):
+    """
+    Update the definition in the `dvc.yaml` file for the specified DVC stage.
+
+    Args:
+        :param: stage: The name of the DVC stage to update.
+        :type stage: str
+    """
+    if stage_definition_is_valid(stage):
+        __LOGGER__.info(f"stage definition of {stage} is up to date")
+    else:
+        __LOGGER__.info(
+            f"stage definition of {stage} is invalid, dvc.yaml need to be updated"
+        )
+        dvc_yaml = load_dvc_yaml()
+        config = get_stage_definition(stage)["stages"][stage]
+        if stage in dvc_yaml["stages"][stage]["cmd"]:
+            config["cmd"] = dvc_yaml["stages"][stage]["cmd"]
+
+        s1 = yaml.dump(dvc_yaml["stages"][stage]).splitlines()
+        s2 = yaml.dump(config).splitlines()
+        diff = difflib.ndiff(s1, s2)
+        diff = "\n".join(diff)
+        __LOGGER__.info(f"changes:\n{diff}")
+
+        __LOGGER__.warn("This will alter your dvc.yaml")
+        answer = input("type [y]es to continue: ")
+
+        if answer.lower() in ["y", "yes"]:
+            dvc_yaml["stages"][stage] = config
+            with open("dvc.yaml", "w") as f:
+                yaml.dump(dvc_yaml, f, sort_keys=False)
+            __LOGGER__.info("dvc.yaml successfully updated")
+        else:
+            __LOGGER__.error("Operation canceled by user")
+            exit(1)
+
+
+def _update_dvc_yaml():
+    """Update all DVC stages defined in the `dvc.yaml` file."""
+    dvc_yaml = load_dvc_yaml()
+    for stage, definition in dvc_yaml["stages"].items():
+        if definition.get("cmd", "").startswith("dvc-stage"):
+            _update_dvc_stage(stage)
+
+
+def _run_stage(stage, validate=True):
+    """
+    Load, apply transformations, validate and write output.
+
+    Args:
+        :param stage: The name of the DVC stage to run.
+        :type stage: str
+        validate (bool, optional): Whether to validate the stage definition
+        before running (default True).
+    """
+    if validate:
+        validate_stage_definition(stage)
+
+    stage_params, global_params = get_stage_params(stage)
+    __LOGGER__.debug(stage_params)
+
+    deps, _ = get_deps(stage_params["load"].pop("path"), global_params)
+
+    __LOGGER__.info("loading data")
+    data = load_data(
+        paths=deps,
+        **stage_params["load"],
+    )
+    __LOGGER__.info("all data loaded")
+
+    transformations = stage_params.get("transformations", None)
+    validations = stage_params.get("validations", None)
+    write = stage_params.get("write", None)
+
+    if transformations is not None:
+        assert write is not None, "No writer configured."
+        __LOGGER__.info("applying transformations")
+        data = apply_transformations(data, transformations)
+        __LOGGER__.info("all transformations applied")
+
+    if validations is not None:
+        __LOGGER__.info("applying validations")
+        apply_validations(data, validations)
+        __LOGGER__.info("all validations passed")
+
+    if write is not None:
+        __LOGGER__.info("writing data")
+        write_data(
+            data=data,
+            **stage_params["write"],
+        )
+        __LOGGER__.info("all data written")
+
+
+# PUBLIC FUNCTIONS ############################################################
 def cli():
+    """Define the command-line interface for this script."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--log-file",
@@ -47,20 +168,20 @@ def cli():
         action="store_false",
         help="do not validate stage definition in dvc.yaml",
     )
-    run_parser.set_defaults(func=run_stage)
+    run_parser.set_defaults(func=_run_stage)
 
     get_cfg_parser = subparsers.add_parser("get-config", help="get dvc config")
     get_cfg_parser.add_argument("stage", help="Name of DVC stage the script is used in")
-    get_cfg_parser.set_defaults(func=print_stage_config)
+    get_cfg_parser.set_defaults(func=_print_stage_definition)
 
     update_cfg_parser = subparsers.add_parser("update-stage", help="update dvc config")
     update_cfg_parser.add_argument(
         "stage", help="Name of DVC stage the script is used in"
     )
-    update_cfg_parser.set_defaults(func=update_dvc_stage)
+    update_cfg_parser.set_defaults(func=_update_dvc_stage)
 
     update_all_parser = subparsers.add_parser("update-all", help="update dvc config")
-    update_all_parser.set_defaults(func=update_dvc_yaml)
+    update_all_parser.set_defaults(func=_update_dvc_yaml)
 
     args = parser.parse_args()
 

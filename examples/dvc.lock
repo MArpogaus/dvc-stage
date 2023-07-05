@@ -1,0 +1,50 @@
+schema: '2.0'
+stages:
+  sbase:
+    cmd: echo "hello,world" > out.txt
+    params:
+      params.yaml:
+        empty_param: []
+    outs:
+    - path: out.txt
+      md5: 757228086dc1e621e37bed30e0b73e17
+      size: 12
+  demo_pipeline:
+    cmd: dvc-stage --log-level debug run demo_pipeline
+    deps:
+    - path: load.csv
+      hash: md5
+      md5: 70eb193c8212942d7990fa951fd2f66b
+      size: 27
+    params:
+      params.yaml:
+        demo_pipeline.load.format: csv
+        demo_pipeline.load.path: load.csv
+        demo_pipeline.transformations:
+        - id: custom
+          description: duplikate rows
+          import_from: demo.duplicate
+        - id: transpose
+        - id: rename
+          columns:
+            0.0: O1
+            1.0: O2
+            2.0: D1
+            3.0: D2
+        demo_pipeline.validations:
+        - id: custom
+          description: check none
+          import_from: demo.isNotNone
+        - id: isnull
+          reduction: any
+          expected: false
+        - id: validate_pandera_schema
+          schema:
+            import_from: demo.get_schema
+        demo_pipeline.write.format: csv
+        demo_pipeline.write.path: outdir/out.csv
+    outs:
+    - path: outdir/out.csv
+      hash: md5
+      md5: 8158060bfb598a05cb57a72b472e8ebd
+      size: 61

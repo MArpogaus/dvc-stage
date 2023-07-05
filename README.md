@@ -22,7 +22,7 @@
 
 ## About The Project
 
-This python script provides a easy and parameterizeable way of defining typical dvc stages for:
+This python script provides a easy and parameterizeable way of defining typical dvc (sub-)stages for:
 
 -   data prepossessing
 -   data transformation
@@ -59,7 +59,47 @@ example steps.
 
 ## Usage
 
-&#x2026;
+DVC-Stage works ontop of two files: `dvc.yaml` and `params.yaml`.
+They are expected to be at the root of an initialized [dvc project](https://dvc.org/).
+From there you can execute `dvc-stage -h` to see available commands or `dvc-stage get-config STAGE` to generate the dvc stages from the `params.yaml` file. The tool then generates the respective yaml which you can then manually paste into the `dvc.yaml` file. Existing stages can then be updated inplace using `dvc-stage update-stage STAGE`.
+
+Stages are defined inside `params.yaml` in the following schema:
+```yaml
+STAGE_NAME:
+  load: {}
+  transformations: []
+  validations: []
+  write: {}
+```
+
+The `load` and `write` sections both require the yaml-keys `path` and `format` to read and save data respectively.
+
+The `transformations` and `validations` sections require a sequence of functions to apply, where `transformations` return data and `validations` return a truth value (derived from data).
+Functions are defined by the key `id` an can be either:
+ - Methods defined on Pandas Dataframes, e.g.
+   ```yaml
+   transformations:
+   - id: transpose
+   ```
+ - Imported from any python module, e.g.
+   ```yaml
+   transformations:
+   - id: custom
+     description: duplikate rows
+     import_from: demo.duplicate
+   ```
+ - Predefined by DVC-Stage, e.g.
+   ```yaml
+   validations:
+   - id: validate_pandera_schema
+     schema:
+     import_from: demo.get_schema
+   ```
+
+When writing a custom function, you need to make sure the function gracefully handles data being `None`, which is required for type inference. Data is passed as first argument. Further arguments can be provided as additional keys, as shown above for `validate_pandera_schema`, where schema is passed as second argument to the function.
+
+
+A working demonstration can be found at `examples/`.
 
 
 <a id="license"></a>
