@@ -4,7 +4,6 @@ requires = ["setuptools >= 61", "setuptools_scm>=7"]
 
 [project]
 classifiers = [
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -20,7 +19,7 @@ dynamic = ["version"]
 license = {text = "GPLv3"}
 name = "dvc-stage"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 
 [project.optional-dependencies]
 develop = [
