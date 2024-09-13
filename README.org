@@ -5,75 +5,123 @@
 [[https://github.com/MArpogaus/dvc-stage/network/members][https://img.shields.io/github/forks/MArpogaus/dvc-stage.svg?style=flat-square]]
 [[https://github.com/MArpogaus/dvc-stage/stargazers][https://img.shields.io/github/stars/MArpogaus/dvc-stage.svg?style=flat-square]]
 [[https://github.com/MArpogaus/dvc-stage/issues][https://img.shields.io/github/issues/MArpogaus/dvc-stage.svg?style=flat-square]]
-[[https://github.com/MArpogaus/dvc-stage/blob/master/COPYING][https://img.shields.io/github/license/MArpogaus/dvc-stage.svg?style=flat-square]]
+[[https://github.com/MArpogaus/dvc-stage/blob/main/LICENSE][https://img.shields.io/github/license/MArpogaus/dvc-stage.svg?style=flat-square]]
+[[https://github.com/MArpogaus/dvc-stage/actions/workflows/test.yaml][https://img.shields.io/github/actions/workflow/status/MArpogaus/dvc-stage/test.yaml.svg?label=test&style=flat-square]]
+[[https://github.com/MArpogaus/dvc-stage/actions/workflows/release.yaml][https://img.shields.io/github/actions/workflow/status/MArpogaus/dvc-stage/release.yaml.svg?label=release&style=flat-square]]
+[[https://github.com/MArpogaus/dvc-stage/blob/main/.pre-commit-config.yaml][https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg?logo=pre-commit&style=flat-square]]
 [[https://linkedin.com/in/MArpogaus][https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555]]
+
+[[https://pypi.org/project/dvc-stage][https://img.shields.io/pypi/v/dvc-stage.svg?style=flat-square]]
 
 * DVC-Stage
 
 #+TOC: headlines 2 local
 
 ** About The Project
-:PROPERTIES:
-:CUSTOM_ID: about-the-project
-:END:
 
-This python script provides a easy and parameterizeable way of defining typical dvc stages for:
+This python script provides a easy and parameterizeable way of defining typical dvc (sub-)stages for:
 
 - data prepossessing
 - data transformation
 - data splitting
 - data validation
 
+
 ** Getting Started
-:PROPERTIES:
-:CUSTOM_ID: getting-started
-:END:
 
 This is an example of how you may give instructions on setting up your
 project locally. To get a local copy up and running follow these simple
 example steps.
 
 *** Prerequisites
-:PROPERTIES:
-:CUSTOM_ID: prerequisites
-:END:
 
 - =pandas>=0.20.*=
 - =dvc>=2.12.*=
 - =pyyaml>=5=
 
 *** Installation
-    :PROPERTIES:
-    :CUSTOM_ID: installation
-    :END:
 
-#+begin_src bash
-pip install git+https://github.com/MArpogaus/dvc-stage.git
+This package is available on [[https://pypi.org/project/dvc-stage/][PyPI]].
+You install it and all of its dependencies using pip:
+
+#+begin_src bash :exports code
+  pip install dvc-stage
 #+end_src
 
 ** Usage
-:PROPERTIES:
-:CUSTOM_ID: usage
-:END:
-...
+
+DVC-Stage works ontop of two files: =dvc.yaml= and =params.yaml=. They
+are expected to be at the root of an initialized [[https://dvc.org/][dvc
+project]]. From there you can execute =dvc-stage -h= to see available
+commands or =dvc-stage get-config STAGE= to generate the dvc stages from
+the =params.yaml= file. The tool then generates the respective yaml
+which you can then manually paste into the =dvc.yaml= file. Existing
+stages can then be updated inplace using =dvc-stage update-stage STAGE=.
+
+Stages are defined inside =params.yaml= in the following schema:
+
+#+begin_src yaml
+    STAGE_NAME:
+      load: {}
+      transformations: []
+      validations: []
+      write: {}
+#+end_src
+
+The =load= and =write= sections both require the yaml-keys =path= and
+=format= to read and save data respectively.
+
+The =transformations= and =validations= sections require a sequence of
+functions to apply, where =transformations= return data and
+=validations= return a truth value (derived from data). Functions are
+defined by the key =id= an can be either:
+
+- Methods defined on Pandas Dataframes, e.g.
+  #+begin_src yaml
+    transformations:
+      - id: transpose
+  #+end_src
+
+- Imported from any python module, e.g.
+  #+begin_src yaml
+    transformations:
+      - id: custom
+        description: duplikate rows
+        import_from: demo.duplicate
+  #+end_src
+
+- Predefined by DVC-Stage, e.g.
+  #+begin_src yaml
+    validations:
+      - id: validate_pandera_schema
+        schema:
+          import_from: demo.get_schema
+  #+end_src
+
+When writing a custom function, you need to make sure the function
+gracefully handles data being =None=, which is required for type
+inference. Data is passed as first argument. Further arguments can be
+provided as additional keys, as shown above for
+=validate_pandera_schema=, where schema is passed as second argument to
+the function.
+
+A working demonstration can be found at =examples/=.
+
+** Contributing
+
+Any Contributions are greatly appreciated! If you have a question, an issue or would like to contribute, please read our [[file:CONTRIBUTING.md][contributing guidelines]].
 
 ** License
-:PROPERTIES:
-:CUSTOM_ID: license
-:END:
+
 Distributed under the [[file:COPYING][GNU General Public License v3]]
 
 ** Contact
-:PROPERTIES:
-:CUSTOM_ID: contact
-:END:
-[[https://github.com/MArpogaus/][Marcel Arpogaus]] - [[mailto:marcel.arpogaus@gmail.com][marcel.arpogaus@gmail.com]]
+
+[[https://github.com/MArpogaus/][Marcel Arpogaus]] - [[mailto:znepry.necbtnhf@tznvy.pbz][znepry.necbtnhf@tznvy.pbz]] (encrypted with [ROT13](https://rot13.com/))
 
 Project Link:
 [[https://github.com/MArpogaus/dvc-stage]]
 
 ** Acknowledgments
-:PROPERTIES:
-:CUSTOM_ID: acknowledgments
-:END:
+
 Parts of this work have been funded by the Federal Ministry for the Environment, Nature Conservation and Nuclear Safety due to a decision of the German Federal Parliament (AI4Grids: 67KI2012A).
