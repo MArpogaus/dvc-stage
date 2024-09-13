@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 12:57:26 (Marcel Arpogaus)
+# changed : 2024-09-13 18:47:49 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -12,6 +12,7 @@
 ###############################################################################
 # REQUIRED MODULES ############################################################
 """loading module."""
+
 import fnmatch
 import logging
 import os
@@ -77,7 +78,15 @@ def _get_data_key(path, key_map):
 
 
 # PUBLIC FUNCTIONS ############################################################
-def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds):
+def load_data(
+    format,
+    paths,
+    key_map=None,
+    import_from=None,
+    quiet=False,
+    return_keys: list = False,
+    **kwds,
+):
     """
     Load data from one or more files. Executes substage "loading".
 
@@ -125,7 +134,10 @@ def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds
         return data
     else:
         if format is None:
-            return None
+            if return_keys:
+                return dict.fromkeys(return_keys)
+            else:
+                return None
         else:
             __LOGGER__.debug(f"loading data from {paths}")
             fn = _get_loading_function(format, import_from)
