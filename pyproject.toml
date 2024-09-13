@@ -1,13 +1,14 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools >= 61.0.0"]
+requires = ["setuptools >= 61", "setuptools_scm>=7"]
 
 [project]
 classifiers = [
   "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
-  "OSI Approved :: GNU General Public License v3 (GPLv3)"
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11"
 ]
 dependencies = [
   "dvc >= 2.12",
@@ -23,32 +24,41 @@ requires-python = ">=3.7"
 
 [project.optional-dependencies]
 develop = [
-  'autoflake',
-  'black',
-  'isort',
-  'pre-commit',
-  'pytest',
-  'python-lsp-black',
-  'python-lsp-server[all]',
+  'commitizen',
   'ipykernel',
-  'tox'
+  'pre-commit',
+  'pylsp-rope',
+  'python-lsp-ruff',
+  'python-lsp-server[all]',
+  'ruff'
 ]
 
 [project.scripts]
 dvc-stage = "dvc_stage.cli:cli"
 
-[tool.autoflake]
-expand-star-imports = true
-ignore-init-module-imports = true
-remove-all-unused-imports = true
-remove-unused-variables = true
+[project.urls]
+Changelog = "https://github.com/MArpogaus/dvc-stage/blob/dev/CHANGELOG.md"
+Documentation = "https://marpogaus.github.io/dvc-stage"
+Issues = "https://github.com/MArpogaus/dvc-stage/issues"
+Repository = "https://github.com/MArpogaus/dvc-stage"
 
-[tool.black]
-# line-length = 88
-target-version = ['py38']
+[tool.commitizen]
+major_version_zero = true
+name = "cz_conventional_commits"
+tag_format = "v$version"
+update_changelog_on_bump = true
+version_provider = "scm"
+version_scheme = "pep440"
 
-[tool.isort]
-profile = "black"
+[tool.ruff]
+indent-width = 4
+line-length = 88
+target-version = "py37"
 
-[tool.setuptools.dynamic]
-version = {attr = "dvc_stage.__version__"}
+[tool.ruff.lint]
+select = ["I", "E", "F"]
+
+[tool.setuptools_scm]
+# https://stackoverflow.com/a/74404703
+# omits local version, useful because pypi does not support it
+local_scheme = "no-local-version"
