@@ -4,6 +4,8 @@ name: Generate documentation using pdoc and deploy as gh page.
 
 # build the documentation whenever there are new commits on main
 on:
+  workflow_dispatch:
+    branches:
   push:
     branches:
     tags:
