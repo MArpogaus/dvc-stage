@@ -31,6 +31,9 @@ develop = [
   'python-lsp-server[all]',
   'ruff'
 ]
+docs = [
+  'pdoc'
+]
 
 [project.scripts]
 dvc-stage = "dvc_stage.cli:cli"

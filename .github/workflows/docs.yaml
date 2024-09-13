@@ -27,7 +27,7 @@ jobs:
 
       # Install all dependencies (including pdoc)
     - run: pip install -e .[docs]
-    - run: pdoc -d numpy -o docs dvc-stage
+    - run: pdoc -d numpy -o docs dvc_stage
     - uses: actions/upload-pages-artifact@v3
       with:
         path: docs/
