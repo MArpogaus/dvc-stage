@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:54:07 (Marcel Arpogaus)
-# changed : 2024-09-15 14:04:22 (Marcel Arpogaus)
+# changed : 2024-09-15 14:37:13 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining common transformations."""
@@ -221,8 +221,8 @@ def _apply_transformation(
     data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
     id: str,
     import_from: Optional[str] = None,
-    exclude: Optional[List[str]] = None,
-    include: Optional[List[str]] = None,
+    exclude: Optional[List[str]] = [],
+    include: Optional[List[str]] = [],
     quiet: bool = False,
     pass_key_to_fn: bool = False,
     **kwds: Any,
