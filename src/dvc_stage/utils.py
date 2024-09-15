@@ -1,59 +1,68 @@
 # -*- time-stamp-pattern: "changed[\s]+:[\s]+%%$"; -*-
-# AUTHOR INFORMATION ##########################################################
-# file    : dvc_stage.py
-# author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
+# %% Author ####################################################################
+# file    : utils.py
+# author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
-# created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 09:22:13 (Marcel Arpogaus)
-# DESCRIPTION #################################################################
-# ...
-# LICENSE #####################################################################
-# ...
-###############################################################################
-# REQUIRED MODULES ############################################################
+# created : 2024-09-15 13:18:39 (Marcel Arpogaus)
+# changed : 2024-09-15 13:25:58 (Marcel Arpogaus)
+
+# %% Description ###############################################################
 """utils module."""
 
+# %% imports ###################################################################
 import glob
 import importlib
 import logging
 import re
-from typing import Dict
+from typing import Any, Callable, Dict, List, Set, Tuple
 
-# MODULE GLOBAL VARIABLES #####################################################
+# %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
 
 
-# PRIVATE FUNCTIONS ###########################################################
-def _parse_path(path, params) -> Dict:
-    """Parse a path and replace ${PLACEHOLDERS}" with values from dict.
+# %% functions #################################################################
+def _parse_path(path: str, params: Dict[str, Any]) -> Tuple[str, Set[str]]:
+    """Parse a path and replace ${PLACEHOLDERS} with values from dict.
 
-    :param path: The path string to parse.
-    :type path: str
-    :param params: A dictionary of parameter values to replace placeholders.
-    :type params: Dict[str, Any]
-    :return: A tuple containing the parsed path string and a set of the
-    matched parameter names.
-    :rtype: Tuple[str, Set[str]]
+    Parameters
+    ----------
+    path : str
+        The path string to parse.
+    params : Dict[str, Any]
+        A dictionary of parameter values to replace placeholders.
+
+    Returns
+    -------
+    Tuple[str, Set[str]]
+        A tuple containing the parsed path string and a set of the matched parameters.
+
     """
-    pattern = re.compile(r"\${([a-z]+)}")  # noqa: W605
+    pattern = re.compile(r"\${([a-z]+)}")
     matches = set(re.findall(pattern, path))
     for g in matches:
         path = path.replace("${" + g + "}", params[g])
     return path, matches
 
 
-# PUBLIC FUNCTIONS ############################################################
-def flatten_dict(d, parent_key="", sep="."):
+def flatten_dict(
+    d: Dict[str, Any], parent_key: str = "", sep: str = "."
+) -> Dict[str, Any]:
     """Recursively flatten a nested dictionary into a single-level dictionary.
 
-    :param d: The dictionary to flatten.
-    :type d: dict
-    :param parent_key: The parent key for the current level of the dictionary.
-    :type parent_key: str
-    :param sep: The separator to use between keys.
-    :type sep: str
-    :return: The flattened dictionary.
-    :rtype: dict
+    Parameters
+    ----------
+    d : dict
+        The dictionary to flatten.
+    parent_key : str, optional
+        The parent key for the current level of the dictionary.
+    sep : str, optional
+        The separator to use between keys.
+
+    Returns
+    -------
+    dict
+        The flattened dictionary.
+
     """
     items = []
     for k, v in d.items():
@@ -65,18 +74,25 @@ def flatten_dict(d, parent_key="", sep="."):
     return dict(items)
 
 
-def get_deps(path, params):
+def get_deps(
+    path: str | List[str], params: Dict[str, Any]
+) -> Tuple[List[str], Set[str]]:
     """Get dependencies given a path pattern and parameter values.
 
-    :param path: A string or list of strings representing file paths.
-    :type path: Union[str, List[str]]
-    :param params: A dictionary containing parameter values to substitute in
-    the `path` string.
-    :type params: Dict[str, Any]
-    :return: A tuple containing two elements: A list of file paths matching
-    the specified `path` pattern, and a set of parameter keys used
-    in the `path` pattern.
-    :rtype: Tuple[List[str], Set[str]]
+    Parameters
+    ----------
+    path : str or List[str]
+        A string or list of strings representing file paths.
+    params : Dict[str, Any]
+        A dictionary containing parameter values to substitute in the `path` string.
+
+    Returns
+    -------
+    Tuple[List[str], Set[str]]
+        A tuple containing two elements:
+          1. a list of file paths matching the specified `path` pattern.
+          2. a set of parameter keys used in the `path` pattern.
+
     """
     deps = []
     param_keys = set()
@@ -99,31 +115,42 @@ def get_deps(path, params):
     return deps, param_keys
 
 
-def import_from_string(import_from):
+def import_from_string(import_from: str) -> Callable:
     """Import and return a callable function by name.
 
-    :param import_from: A string representing the fully qualified name of the function.
-    :type import_from: str
+    Parameters
+    ----------
+    import_from : str
+        A string representing the fully qualified name of the function.
 
-    :return: A callable function.
-    :rtype: Callable
+    Returns
+    -------
+    Callable
+        A callable function.
+
     """
     module_name, function_name = import_from.rsplit(".", 1)
     fn = getattr(importlib.import_module(module_name), function_name)
     return fn
 
 
-def key_is_skipped(key, include, exclude):
+def key_is_skipped(key: str, include: List[str], exclude: List[str]) -> bool:
     """Check if a key should be skipped based on include and exclude lists.
 
-    :param key: The key to check.
-    :type key: str
-    :param include: The list of keys to include. If empty, include all keys.
-    :type include: List[str]
-    :param exclude: The list of keys to exclude. If empty, exclude no keys.
-    :type exclude: List[str]
-    :return: True if the key should be skipped, False otherwise.
-    :rtype: bool
+    Parameters
+    ----------
+    key : str
+        The key to check.
+    include : List[str]
+        The list of keys to include. If empty, include all keys.
+    exclude : List[str]
+        The list of keys to exclude. If empty, exclude no keys.
+
+    Returns
+    -------
+    bool
+        True if the key should be skipped, False otherwise.
+
     """
     cond = (key in exclude) or (len(include) > 0 and key not in include)
     __LOGGER__.debug(f'key "{key}" is {"" if cond else "not "}skipped')

@@ -1,43 +1,54 @@
 # -*- time-stamp-pattern: "changed[\s]+:[\s]+%%$"; -*-
-# AUTHOR INFORMATION ##########################################################
-# file    : dvc_stage.py
-# author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
+# %% Author ####################################################################
+# file    : writing.py
+# author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
-# created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 13:00:37 (Marcel Arpogaus)
-# DESCRIPTION #################################################################
-# ...
-# LICENSE #####################################################################
-# ...
-###############################################################################
-# REQUIRED MODULES ############################################################
-"""writing module."""
+# created : 2024-09-15 13:56:17 (Marcel Arpogaus)
+# changed : 2024-09-15 14:16:33 (Marcel Arpogaus)
 
+# %% Description ###############################################################
+"""Module defining data writing functions."""
+
+# %% imports ###################################################################
 import logging
 import os
+from typing import Any, Callable, Dict, List, Optional, Union
 
+import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from dvc_stage.utils import import_from_string
 
-# MODULE GLOBAL VARIABLES #####################################################
+# %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
 
 
-# PRIVATE FUNCTIONS ###########################################################
-def _get_writing_function(data, format, import_from):
+# %% private functions #########################################################
+def _get_writing_function(
+    data: Any, format: str, import_from: Optional[str]
+) -> Callable:
     """Return a writing function for a given data format.
 
-    :param data: The data to be written.
-    :type data: Any
-    :param format: The format to write the data in.
-    :type format: str
-    :param import_from: The module path for the custom writing function (default: None).
-    :type import_from: Optional[str]
-    :return: The writing function.
-    :rtype: Callable
-    :raises ValueError: If the writing function for the given format is not found.
+    Parameters
+    ----------
+    data : Any
+        The data to be written.
+    format : str
+        The format to write the data in.
+    import_from : Optional[str]
+        The module path for the custom writing function (default: None).
+
+    Returns
+    -------
+    Callable
+        The writing function.
+
+    Raises
+    ------
+    ValueError
+        If the writing function for the given format is not found.
+
     """
     if format == "custom":
         fn = import_from_string(import_from)
@@ -48,20 +59,29 @@ def _get_writing_function(data, format, import_from):
     return fn
 
 
-# PUBLIC FUNCTIONS ############################################################
-def write_data(data, format, path, import_from=None, **kwds):
+# %% public functions ##########################################################
+def write_data(
+    data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    format: str,
+    path: str,
+    import_from: Optional[str] = None,
+    **kwds: Any,
+) -> None:
     """Write data to a file. Main entrypoint for writing substage.
 
-    :param data: The data to be written.
-    :type data: Union[pandas.DataFrame, Dict[str, pandas.DataFrame]]
-    :param format: The format of the output file.
-    :type format: str
-    :param path: The path to write the file to.
-    :type path: str
-    :param import_from: The module path of a custom writing function.
-    :type import_from: Optional[str]
-    :param kwds: Additional keyword arguments passed to the writing function.
-    :type kwds: Any
+    Parameters
+    ----------
+    data : Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+        The data to be written.
+    format : str
+        The format of the output file.
+    path : str
+        The path to write the file to.
+    import_from : Optional[str], optional
+        The module path of a custom writing function, by default None.
+    kwds : Any
+        Additional keyword arguments passed to the writing function.
+
     """
     dirname = os.path.dirname(path)
     if not os.path.exists(dirname):
@@ -86,17 +106,25 @@ def write_data(data, format, path, import_from=None, **kwds):
         fn(data, path, **kwds)
 
 
-def get_outs(data, path, **kwds):
+def get_outs(
+    data: Union[List, Dict, pd.DataFrame], path: str, **kwds: Any
+) -> List[str]:
     """Get list of output paths based on input data.
 
-    :param data: Input data
-    :type data: Union[List, Dict, pd.DataFrame]
-    :param path: Output path template string
-    :type path: str
-    :param **kwds: Additional keyword arguments
-    :type **kwds: dict
-    :return: List of output paths
-    :rtype: List[str]
+    Parameters
+    ----------
+    data : Union[List, Dict, pd.DataFrame]
+        Input data.
+    path : str
+        Output path template string.
+    kwds : Any
+        Additional keyword arguments.
+
+    Returns
+    -------
+    List[str]
+        List of output paths.
+
     """
     outs = []
 
