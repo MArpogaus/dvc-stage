@@ -50,8 +50,7 @@ def _get_writing_function(data, format, import_from):
 
 # PUBLIC FUNCTIONS ############################################################
 def write_data(data, format, path, import_from=None, **kwds):
-    """
-    Write data to a file. Main entrypoint for writing substage.
+    """Write data to a file. Main entrypoint for writing substage.
 
     :param data: The data to be written.
     :type data: Union[pandas.DataFrame, Dict[str, pandas.DataFrame]]
@@ -88,8 +87,7 @@ def write_data(data, format, path, import_from=None, **kwds):
 
 
 def get_outs(data, path, **kwds):
-    """
-    Get list of output paths based on input data.
+    """Get list of output paths based on input data.
 
     :param data: Input data
     :type data: Union[List, Dict, pd.DataFrame]

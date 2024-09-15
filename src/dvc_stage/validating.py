@@ -62,8 +62,7 @@ def _apply_validation(
     pass_key_to_fn=False,
     **kwds,
 ):
-    """
-    Apply a validation function to a given data.
+    """Apply a validation function to a given data.
 
     :param data: The data to be validated. It can be a DataFrame or a
     dictionary of DataFrames.
@@ -165,8 +164,7 @@ def _apply_validation(
 
 # PUBLIC FUNCTIONS ############################################################
 def validate_pandera_schema(data, schema, key=None):
-    """
-    Validate a Pandas DataFrame `data` against a Pandera schema.
+    """Validate a Pandas DataFrame `data` against a Pandera schema.
 
     :param data: Pandas DataFrame to be validated.
     :type data: pandas.DataFrame
@@ -213,8 +211,7 @@ def validate_pandera_schema(data, schema, key=None):
 
 
 def apply_validations(data, validations):
-    """
-    Apply validations to input data. Entrypoint for validation substage.
+    """Apply validations to input data. Entrypoint for validation substage.
 
     :param data: Input data.
     :type data: pandas.DataFrame or dict of pandas.DataFrame

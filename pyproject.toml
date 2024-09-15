@@ -57,7 +57,7 @@ line-length = 88
 target-version = "py37"
 
 [tool.ruff.lint]
-select = ["I", "E", "F"]
+select = ["I", "E", "F", "D"]
 
 [tool.setuptools_scm]
 # https://stackoverflow.com/a/74404703

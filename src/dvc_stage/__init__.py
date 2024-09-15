@@ -1,4 +1,4 @@
-""".. include:: ../../README.md"""
+""".. include:: ../../README.md."""
 
 from importlib.metadata import PackageNotFoundError, version
 

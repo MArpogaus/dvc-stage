@@ -29,8 +29,7 @@ __LOGGER__ = logging.getLogger(__name__)
 
 # PRIVATE FUNCTIONS ###########################################################
 def _get_loading_function(format, import_from):
-    """
-    Get the loading function for a given file-format.
+    """Get the loading function for a given file-format.
 
     Args:
         :param format: the file-format to load the data from.
@@ -41,6 +40,7 @@ def _get_loading_function(format, import_from):
 
     Returns:
         :return: (function): the loading function for the given format.
+
     """
     if format == "custom":
         fn = import_from_string(import_from)
@@ -52,8 +52,7 @@ def _get_loading_function(format, import_from):
 
 
 def _get_data_key(path, key_map):
-    """
-    Private function to get the data key from a file path.
+    """Private function to get the data key from a file path.
 
     Args:
         :param path: the file path.
@@ -64,6 +63,7 @@ def _get_data_key(path, key_map):
     Returns:
         :return: the data key associated with the file path.
         :rtype: str
+
     """
     k = os.path.basename(path)
     k = os.path.splitext(k)[0]
@@ -87,8 +87,7 @@ def load_data(
     return_keys: list = False,
     **kwds,
 ):
-    """
-    Load data from one or more files. Executes substage "loading".
+    """Load data from one or more files. Executes substage "loading".
 
     Args:
         :param format: the format to load the data from.
@@ -108,6 +107,7 @@ def load_data(
     Returns:
      :return: (object or dict): the loaded data, either as a single object or
      a dictionary of objects.
+
     """
     __LOGGER__.disabled = quiet
     if len(paths) == 1:

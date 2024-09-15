@@ -96,8 +96,7 @@ def _id_split(
 
 
 def _initialize_sklearn_transformer(transformer_class_name, **kwds):
-    """
-    Create an instance of the specified transformer class.
+    """Create an instance of the specified transformer class.
 
     :param transformer_class_name: The name of the transformer class.
     (function in python module, "drop" or "passthrough")
@@ -122,8 +121,7 @@ def _initialize_sklearn_transformer(transformer_class_name, **kwds):
 
 
 def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
-    """
-    Build a Scikit-Learn ColumnTransformer from a list of dictionaries.
+    """Build a Scikit-Learn ColumnTransformer from a list of dictionaries.
 
     :param transformers: list of transformer dictionaries.
     Each dictionary must contain a "class_name" key with the name
@@ -201,8 +199,7 @@ def _apply_transformation(
     pass_key_to_fn=False,
     **kwds,
 ):
-    """
-    Apply transformation `id` to `data`.
+    """Apply transformation `id` to `data`.
 
     :param data: Input data to transform. Can be a single DataFrame or a
     dictionary of DataFrames.
@@ -374,8 +371,7 @@ def column_transformer_fit(data: pd.DataFrame, dump_to_file: str = None, **kwds)
 
 
 def column_transformer_transform(data: pd.DataFrame, **kwds):
-    """
-    Apply the column transformer to the input data.
+    """Apply the column transformer to the input data.
 
     :param data: Input data to transform.
     :type data: pd.DataFrame

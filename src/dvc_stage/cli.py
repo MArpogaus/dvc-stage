@@ -44,18 +44,19 @@ def _print_stage_definition(stage):
     Args:
         :param stage: The name of the DVC stage to retrieve the definition for.
         :type stage: str
+
     """
     config = get_stage_definition(stage)
     print(yaml.dump(config))
 
 
 def _update_dvc_stage(stage, yes: bool):
-    """
-    Update the definition in the `dvc.yaml` file for the specified DVC stage.
+    """Update the definition in the `dvc.yaml` file for the specified DVC stage.
 
     Args:
         :param: stage: The name of the DVC stage to update.
         :type stage: str
+
     """
     if stage_definition_is_valid(stage):
         __LOGGER__.info(f"stage definition of {stage} is up to date")
@@ -99,14 +100,14 @@ def _update_dvc_yaml(yes: bool):
 
 
 def _run_stage(stage, validate=True):
-    """
-    Load, apply transformations, validate and write output.
+    """Load, apply transformations, validate and write output.
 
     Args:
         :param stage: The name of the DVC stage to run.
         :type stage: str
         validate (bool, optional): Whether to validate the stage definition
         before running (default True).
+
     """
     if validate:
         validate_stage_definition(stage)

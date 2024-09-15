@@ -66,8 +66,7 @@ def flatten_dict(d, parent_key="", sep="."):
 
 
 def get_deps(path, params):
-    """
-    Get dependencies given a path pattern and parameter values.
+    """Get dependencies given a path pattern and parameter values.
 
     :param path: A string or list of strings representing file paths.
     :type path: Union[str, List[str]]
@@ -101,8 +100,7 @@ def get_deps(path, params):
 
 
 def import_from_string(import_from):
-    """
-    Import and return a callable function by name.
+    """Import and return a callable function by name.
 
     :param import_from: A string representing the fully qualified name of the function.
     :type import_from: str
@@ -116,8 +114,7 @@ def import_from_string(import_from):
 
 
 def key_is_skipped(key, include, exclude):
-    """
-    Check if a key should be skipped based on include and exclude lists.
+    """Check if a key should be skipped based on include and exclude lists.
 
     :param key: The key to check.
     :type key: str
