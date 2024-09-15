@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:18:39 (Marcel Arpogaus)
-# changed : 2024-09-15 13:25:58 (Marcel Arpogaus)
+# changed : 2024-09-15 14:24:02 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """utils module."""
@@ -14,7 +14,7 @@ import glob
 import importlib
 import logging
 import re
-from typing import Any, Callable, Dict, List, Set, Tuple
+from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
 # %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def flatten_dict(
 
 
 def get_deps(
-    path: str | List[str], params: Dict[str, Any]
+    path: Union[str, List[str]], params: Dict[str, Any]
 ) -> Tuple[List[str], Set[str]]:
     """Get dependencies given a path pattern and parameter values.
 

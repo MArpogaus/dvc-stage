@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:51:13 (Marcel Arpogaus)
-# changed : 2024-09-15 13:53:53 (Marcel Arpogaus)
+# changed : 2024-09-15 14:23:53 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """loading module."""
@@ -13,6 +13,7 @@
 import fnmatch
 import logging
 import os
+from typing import Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -81,13 +82,13 @@ def _get_data_key(path: str, key_map: dict) -> str:
 # %% public functions ##########################################################
 def load_data(
     format: str,
-    paths: str | list,
+    paths: Union[str, list],
     key_map: dict = None,
     import_from: str = None,
     quiet: bool = False,
     return_keys: list = False,
     **kwds: object,
-) -> object | dict:
+) -> Union[object, dict]:
     """Load data from one or more files. Executes substage "loading".
 
     Parameters

@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 14:05:05 (Marcel Arpogaus)
-# changed : 2024-09-15 14:12:22 (Marcel Arpogaus)
+# changed : 2024-09-15 14:30:56 (Marcel Arpogaus)
 
 
 # %% Description ###############################################################
@@ -12,7 +12,7 @@
 
 # %% imports ###################################################################
 import logging
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -66,8 +66,8 @@ def _apply_validation(
     import_from: str = None,
     reduction: str = "any",
     expected: bool = True,
-    include: list[str] = [],
-    exclude: list[str] = [],
+    include: List[str] = [],
+    exclude: List[str] = [],
     pass_key_to_fn: bool = False,
     **kwds: Dict[str, Any],
 ) -> None:
@@ -93,9 +93,9 @@ def _apply_validation(
             returned in full.
     expected : bool
         The expected output of the validation.
-    include : list[str]
+    include : List[str]
         List of keys to include in the validation. If empty, all keys will be included.
-    exclude : list[str]
+    exclude : List[str]
         List of keys to exclude from the validation.
     pass_key_to_fn : bool
         Flag to indicate if the key should be passed to the validation function.
@@ -222,14 +222,14 @@ def validate_pandera_schema(
     return True
 
 
-def apply_validations(data: any, validations: list[dict]) -> None:
+def apply_validations(data: any, validations: List[dict]) -> None:
     """Apply validations to input data. Entrypoint for validation substage.
 
     Parameters
     ----------
     data : pandas.DataFrame or dict of pandas.DataFrame
         Input data.
-    validations : list[dict]
+    validations : List[dict]
         List of dictionaries containing validation parameters.
 
     """
