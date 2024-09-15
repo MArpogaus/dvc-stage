@@ -1,18 +1,17 @@
 # -*- time-stamp-pattern: "changed[\s]+:[\s]+%%$"; -*-
-# AUTHOR INFORMATION ##########################################################
+# %% Author ####################################################################
 # file    : config.py
-# author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
+# author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
-# created : 2023-02-14 15:13:07 (Marcel Arpogaus)
-# changed : 2021-03-26 11:48:25 (Marcel Arpogaus)
-# DESCRIPTION #################################################################
-# ...
-# LICENSE #####################################################################
-# ...
-###############################################################################
-# REQUIRED MODULES ############################################################
+# created : 2024-09-15 13:48:10 (Marcel Arpogaus)
+# changed : 2024-09-15 13:49:32 (Marcel Arpogaus)
+
+# %% Description ###############################################################
 """config module."""
+
+# %% imports ###################################################################
 import logging
+from typing import Any, Dict, Tuple
 
 import dvc.api
 import yaml
@@ -23,17 +22,19 @@ from dvc_stage.transforming import apply_transformations
 from dvc_stage.utils import flatten_dict, get_deps
 from dvc_stage.writing import get_outs
 
-# MODULE GLOBAL VARIABLES #####################################################
+# %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
 
 
-# PUBLIC FUNCTIONS ############################################################
-def load_dvc_yaml():
-    """
-    Load and return the dvc.yaml file as a dictionary.
+# %% functions #################################################################
+def load_dvc_yaml() -> Dict[str, Any]:
+    """Load and return the dvc.yaml file as a dictionary.
 
-    Returns:
-        :return: dict: The contents of dvc.yaml file.
+    Returns
+    -------
+    dict
+        The contents of dvc.yaml file.
+
     """
     __LOGGER__.debug("loading dvc.yaml")
     with open("dvc.yaml", "r") as f:
@@ -42,15 +43,19 @@ def load_dvc_yaml():
     return dvc_yaml
 
 
-def get_stage_definition(stage):
-    """
-    Generate a dvc stage definition dictionary based on the given stage name.
+def get_stage_definition(stage: str) -> Dict[str, Any]:
+    """Generate a dvc stage definition dictionary based on the given stage name.
 
-    Args:
-        stage (str): The name of the dvc stage.
+    Parameters
+    ----------
+    stage : str
+        The name of the dvc stage.
 
-    Returns:
-        :return: dict: The dvc stage definition dictionary.
+    Returns
+    -------
+    dict
+        The dvc stage definition dictionary.
+
     """
     __LOGGER__.debug(f"tracing dvc stage: {stage}")
 
@@ -90,15 +95,19 @@ def get_stage_definition(stage):
     return config
 
 
-def stage_definition_is_valid(stage):
-    """
-    Check if the dvc.yaml file for the given stage is valid.
+def stage_definition_is_valid(stage: str) -> bool:
+    """Check if the dvc.yaml file for the given stage is valid.
 
-    Args:
-        stage (str): The name of the dvc stage.
+    Parameters
+    ----------
+    stage : str
+        The name of the dvc stage.
 
-    Returns:
-        :return: bool: True if dvc.yaml is valid.
+    Returns
+    -------
+    bool
+        True if dvc.yaml is valid.
+
     """
     dvc_yaml = load_dvc_yaml()["stages"][stage]
     __LOGGER__.debug(f"dvc.yaml:\n{yaml.dump(dvc_yaml)}")
@@ -110,33 +119,41 @@ def stage_definition_is_valid(stage):
     return dvc_yaml == config
 
 
-def validate_stage_definition(stage):
-    """
-    Validate the dvc.yaml file for the given stage.
+def validate_stage_definition(stage: str) -> None:
+    """Validate the dvc.yaml file for the given stage.
 
-    Args:
-        :param stage: The name of the dvc stage.
-        :type stage: str
+    Parameters
+    ----------
+    stage : str
+        The name of the dvc stage.
 
-    Note:
-        :raises AssertionError: if invalid
+    Note
+    ----
+    Raises AssertionError if invalid
+
     """
     __LOGGER__.debug("validating dvc.yaml")
     assert stage_definition_is_valid(stage), f"dvc.yaml for {stage} is invalid."
 
 
-def get_stage_params(stage, all=False):
-    """
-    Retrieve and return the stage parameters and global parameters as a tuple.
+def get_stage_params(
+    stage: str, all: bool = False
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Retrieve and return the stage parameters and global parameters as a tuple.
 
-    Args:
-        :param stage: The name of the dvc stage.
-        :type stage: str
-        :param all : If True, retrieve all stages' parameters. Defaults to False.
+    Parameters
+    ----------
+    stage : str
+        The name of the dvc stage.
+    all : bool, optional
+        If True, retrieve all stages' parameters. Defaults to False.
 
-    Returns:
-        :return: tuple: A tuple (stage_params, global_params) containing the
+    Returns
+    -------
+    tuple
+        A tuple (stage_params, global_params) containing the
         stage parameters and global parameters as dictionaries.
+
     """
     params = dvc.api.params_show(stages=None if all else stage)
     stage_params = params[stage]

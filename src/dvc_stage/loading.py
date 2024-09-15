@@ -1,20 +1,19 @@
 # -*- time-stamp-pattern: "changed[\s]+:[\s]+%%$"; -*-
-# AUTHOR INFORMATION ##########################################################
-# file    : dvc_stage.py
-# author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
+# %% Author ####################################################################
+# file    : loading.py
+# author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
-# created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 12:57:26 (Marcel Arpogaus)
-# DESCRIPTION #################################################################
-# ...
-# LICENSE #####################################################################
-# ...
-###############################################################################
-# REQUIRED MODULES ############################################################
+# created : 2024-09-15 13:51:13 (Marcel Arpogaus)
+# changed : 2024-09-15 14:23:53 (Marcel Arpogaus)
+
+# %% Description ###############################################################
 """loading module."""
+
+# %% imports ###################################################################
 import fnmatch
 import logging
 import os
+from typing import Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -22,24 +21,26 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 from dvc_stage.utils import import_from_string
 
-# MODULE GLOBAL VARIABLES #####################################################
+# %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
 
 
-# PRIVATE FUNCTIONS ###########################################################
-def _get_loading_function(format, import_from):
-    """
-    Get the loading function for a given file-format.
+# %% private functions #########################################################
+def _get_loading_function(format: str, import_from: str) -> callable:
+    """Get the loading function for a given file-format.
 
-    Args:
-        :param format: the file-format to load the data from.
-        :type format: str
-        :param import_from: module name or path where the custom loading function
-        is located.
-        :type import_from: str
+    Parameters
+    ----------
+    format : str
+        The file-format to load the data from.
+    import_from : str
+        Module name or path where the custom loading function is located.
 
-    Returns:
-        :return: (function): the loading function for the given format.
+    Returns
+    -------
+    callable
+        The loading function for the given format.
+
     """
     if format == "custom":
         fn = import_from_string(import_from)
@@ -50,19 +51,21 @@ def _get_loading_function(format, import_from):
     return fn
 
 
-def _get_data_key(path, key_map):
-    """
-    Private function to get the data key from a file path.
+def _get_data_key(path: str, key_map: dict) -> str:
+    """Private function to get the data key from a file path.
 
-    Args:
-        :param path: the file path.
-        :type path: str
-        :param key_map: a mapping from filename patterns to data keys.
-        :type key_map: dict
+    Parameters
+    ----------
+    path : str
+        The file path.
+    key_map : dict
+        A mapping from filename patterns to data keys.
 
-    Returns:
-        :return: the data key associated with the file path.
-        :rtype: str
+    Returns
+    -------
+    str
+        The data key associated with the file path.
+
     """
     k = os.path.basename(path)
     k = os.path.splitext(k)[0]
@@ -76,29 +79,43 @@ def _get_data_key(path, key_map):
     return k
 
 
-# PUBLIC FUNCTIONS ############################################################
-def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds):
-    """
-    Load data from one or more files. Executes substage "loading".
+# %% public functions ##########################################################
+def load_data(
+    format: str,
+    paths: Union[str, list],
+    key_map: dict = None,
+    import_from: str = None,
+    quiet: bool = False,
+    return_keys: list = False,
+    **kwds: object,
+) -> Union[object, dict]:
+    """Load data from one or more files. Executes substage "loading".
 
-    Args:
-        :param format: the format to load the data from.
-        :type format: str
-        :param paths: the file path(s) to load the data from.
-        :type paths: str or list
-        :param key_map: a mapping from filename patterns to data keys.
-        :type key_map: dict
-        :param import_from: module name or path where the custom loading
-        function is located.
-        :type import_from: str
-        :param quiet: whether to disable logging messages or not.
-        :type quiet: bool
-        :param **kwds: additional keyword arguments to pass to the loading function.
-        :type **kwds: object
+    Parameters
+    ----------
+    format : str
+        The format to load the data from.
+    paths : str or list
+        The file path(s) to load the data from.
+    key_map : dict, optional
+        A mapping from filename patterns to data keys.
+    import_from : str, optional
+        Module name or path where the custom loading function is located.
+    quiet : bool, optional
+        Whether to disable logging messages or not.
+    return_keys: list
+        Provide keys in case custom loading functions return s a dict containing
+        multiple DataFrames.
+    **kwds : object
+        Additional keyword arguments to pass to the loading function.
 
-    Returns:
-     :return: (object or dict): the loaded data, either as a single object or
-     a dictionary of objects.
+    Returns
+    -------
+    object or dict
+        The loaded data, either as a single object or a dictionary of objects.
+    object or dict
+        The loaded data, either as a single object or a dictionary of objects.
+
     """
     __LOGGER__.disabled = quiet
     if len(paths) == 1:
@@ -125,7 +142,10 @@ def load_data(format, paths, key_map=None, import_from=None, quiet=False, **kwds
         return data
     else:
         if format is None:
-            return None
+            if return_keys:
+                return dict.fromkeys(return_keys)
+            else:
+                return None
         else:
             __LOGGER__.debug(f"loading data from {paths}")
             fn = _get_loading_function(format, import_from)

@@ -1,22 +1,20 @@
 # -*- time-stamp-pattern: "changed[\s]+:[\s]+%%$"; -*-
-# AUTHOR INFORMATION ##########################################################
+# %% Author ####################################################################
 # file    : transforming.py
-# author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
+# author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
-# created : 2022-11-24 14:40:39 (Marcel Arpogaus)
-# changed : 2023-03-02 10:08:36 (Marcel Arpogaus)
-# DESCRIPTION #################################################################
-# ...
-# LICENSE #####################################################################
-# ...
-###############################################################################
-# REQUIRED MODULES ############################################################
-"""transforming module."""
+# created : 2024-09-15 13:54:07 (Marcel Arpogaus)
+# changed : 2024-09-15 14:37:13 (Marcel Arpogaus)
+
+# %% Description ###############################################################
+"""Module defining common transformations."""
+
+# %% imports ###################################################################
 import importlib
 import logging
 import os
 import pickle
-from typing import Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -25,12 +23,12 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 from dvc_stage.utils import import_from_string, key_is_skipped
 
-# MODULE GLOBAL VARIABLES #####################################################
+# %% globals ###################################################################
 __COLUMN_TRANSFORMER_CACHE__ = {}
 __LOGGER__ = logging.getLogger(__name__)
 
 
-# PRIVATE FUNCTIONS ###########################################################
+# %% private functions #########################################################
 def _date_time_split(
     data: pd.DataFrame, size: float, freq: str, date_time_col: str
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -38,15 +36,21 @@ def _date_time_split(
 
     NOTE: Only tested for Monthly splits so far
 
-    :param data: data to split
-    :type data: pd.DataFrame
-    :param size: amount of time steps
-    :type size: float
-    :pram freq: frequency to split on
-    :type freq: str
-    :pram date_time_col: column containing the date time index
-    :type date_time_col: str
-    :returns: Tuple[pd.DataFrame, pd.DataFrame]
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Data to split.
+    size : float
+        Amount of time steps.
+    freq : str
+        Frequency to split on.
+    date_time_col : str
+        Column containing the date time index.
+
+    Returns
+    -------
+    tuple
+        Tuple containing left and right split data.
 
     """
     start_point = data[date_time_col].dt.date.min()
@@ -75,15 +79,21 @@ def _id_split(
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Split data on a random set of ids.
 
-    :param data: data to split
-    :type data: pd.DataFrame
-    :param size: amount of random ids in the left split
-    :type size: float
-    :param seed: seed used for id shuffling
-    :type seed: int
-    :param id_col: column containing id information
-    :type id_col: str
-    :returns: Tuple[pd.DataFrame, pd.DataFrame]
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Data to split.
+    size : float
+        Amount of random ids in the left split.
+    seed : int
+        Seed used for id shuffling.
+    id_col : str
+        Column containing id information.
+
+    Returns
+    -------
+    tuple
+        Tuple containing left and right split data.
 
     """
     np.random.seed(seed)
@@ -94,16 +104,21 @@ def _id_split(
     return data[mask], data[~mask]
 
 
-def _initialize_sklearn_transformer(transformer_class_name, **kwds):
-    """
-    Create an instance of the specified transformer class.
+def _initialize_sklearn_transformer(transformer_class_name: str, **kwds: Any) -> Any:
+    """Create an instance of the specified transformer class.
 
-    :param transformer_class_name: The name of the transformer class.
-    (function in python module, "drop" or "passthrough")
-    :type transformer_class_name: str
-    :param kwds: Optional keyword arguments to pass to the transformer
-    class constructor.
-    :returns: An instance of the specified transformer class.
+    Parameters
+    ----------
+    transformer_class_name : str
+        The name of the transformer class, "drop" or "passthrough".
+    kwds : Any
+        Optional keyword arguments to pass to the transformer class constructor.
+
+    Returns
+    -------
+    object
+        An instance of the specified transformer class.
+
     """
     if transformer_class_name in ("drop", "passthrough"):
         return transformer_class_name
@@ -120,23 +135,28 @@ def _initialize_sklearn_transformer(transformer_class_name, **kwds):
         return transformer_class(**kwds)
 
 
-def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
-    """
-    Build a Scikit-Learn ColumnTransformer from a list of dictionaries.
+def _get_column_transformer(
+    transformers: List[Dict[str, Any]], remainder: str = "drop", **kwds: Any
+) -> Any:
+    """Build a Scikit-Learn ColumnTransformer from a list of dictionaries.
 
-    :param transformers: list of transformer dictionaries.
-    Each dictionary must contain a "class_name" key with the name
-    of the transformer class, and a "columns" key with a list of column names to
-    apply the transformer to.
-    :type transformers: List[dict]
-    :param remainder: how to handle columns that were not specified in the
-    transformers, defaults to "drop"
-    :type remainder: str, optional
-    :param kwds: additional keyword arguments to pass to ColumnTransformer
-    initialization
-    :type kwds: dict
-    :return: initialized ColumnTransformer object
-    :rtype: object
+    Parameters
+    ----------
+    transformers : list
+        List of transformer dictionaries.
+        Each dictionary must contain a "class_name" key with the name of the transformer
+        class, and a "columns" key with a list of columns to apply the transformer to.
+    remainder : str, optional
+        How to handle columns that were not specified in the transformers.
+        Default: "drop"
+    kwds : dict
+        Additional keyword arguments to pass to ColumnTransformer initialization.
+
+    Returns
+    -------
+    object
+        Initialized ColumnTransformer object.
+
     """
     from sklearn.compose import make_column_transformer
 
@@ -164,68 +184,75 @@ def _get_column_transformer(transformers: [], remainder: str = "drop", **kwds):
     return column_transformer
 
 
-def _get_transformation(data, id, import_from):
+def _get_transformation(
+    data: Optional[pd.DataFrame], id: str, import_from: Optional[str]
+) -> Callable[..., Union[pd.DataFrame, None]]:
     """Return a callable function that transforms a pandas dataframe.
 
-    :param data: Pandas DataFrame to be transformed
-    :type data: Union[pd.DataFrame, None]
-    :param id: Identifier for the transformation to be applied to the data.
-    :type id: str
-    :param import_from: When id="custom", it is the path to the
-    python function to be imported.
-    :type import_from: Optional[str]
-    :return: A callable function that transforms a pandas dataframe.
-    :rtype: Callable[..., Union[pd.DataFrame, None]]
+    Parameters
+    ----------
+    data : pd.DataFrame, optional
+        Pandas DataFrame to be transformed.
+    id : str
+        Identifier for the transformation to be applied to the data.
+    import_from : str, optional
+        When id="custom", it is the path to the python function to be imported.
+
+    Returns
+    -------
+    callable
+        A callable function that transforms a pandas dataframe.
+
     """
     if id == "custom":
         fn = import_from_string(import_from)
     elif id in globals().keys():
         fn = globals()[id]
     elif hasattr(data, id):
-        fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa E731
+        fn = lambda _, **kwds: getattr(data, id)(**kwds)  # noqa: E731
     elif data is None and hasattr(pd.DataFrame, id):
-        fn = lambda _, **__: None  # noqa E731
+        fn = lambda _, **__: None  # noqa: E731
     else:
         raise ValueError(f'transformation function "{id}" not found')
     return fn
 
 
 def _apply_transformation(
-    data,
-    id: List[str],
-    import_from=None,
-    exclude=[],
-    include=[],
-    quiet=False,
-    pass_key_to_fn=False,
-    **kwds,
-):
-    """
-    Apply transformation `id` to `data`.
+    data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    id: str,
+    import_from: Optional[str] = None,
+    exclude: Optional[List[str]] = [],
+    include: Optional[List[str]] = [],
+    quiet: bool = False,
+    pass_key_to_fn: bool = False,
+    **kwds: Any,
+) -> Union[Dict[str, Any], Any]:
+    """Apply transformation `id` to `data`.
 
-    :param data: Input data to transform. Can be a single DataFrame or a
-    dictionary of DataFrames.
-    :type data: Union[pd.DataFrame, Dict[str, pd.DataFrame]]
-    :param id: Transformation identifier. If it is 'combine' it will perform a
-    combine operation.
-    :type id: List[str]
-    :param import_from: String representing the import path of a module
-    containing a custom transformation function.
-    :type import_from: Optional[str]
-    :param exclude: List of keys to exclude from transformation.
-    :type exclude: Optional[List[str]]
-    :param include: List of keys to include in the transformation.
-    :type include: Optional[List[str]]
-    :param quiet: Flag to disable logger output.
-    :type quiet: Optional[bool]
-    :param pass_key_to_fn: Flag to pass the key value to the
-    custom transformation function.
-    :type pass_key_to_fn: Optional[bool]
-    :param kwds: Optional keyword arguments to pass to the
-    transformation function.
-    :type kwds: Any
-    :return: The transformed input data.
-    :rtype: Union[Dict[str, Any], Any]
+    Parameters
+    ----------
+    data : pd.DataFrame or dict
+        Input data to transform. Can be a single DataFrame or a dict of DataFrames.
+    id : str
+        Identifier of transformation to apply, passed to `_get_transformation`.
+    import_from : str, optional
+        String representing the import path of a custom transformation function.
+    exclude : list, optional
+        List of keys to exclude from transformation.
+    include : list, optional
+        List of keys to include in the transformation.
+    quiet : bool, optional
+        Flag to disable logger output.
+    pass_key_to_fn : bool, optional
+        Flag to pass the key value to the custom transformation function.
+    kwds : Any
+        Additional keyword arguments to pass to the transformation function.
+
+    Returns
+    -------
+    dict or any
+        The transformed input data.
+
     """
     __LOGGER__.disabled = quiet
     if isinstance(data, dict) and id != "combine":
@@ -274,21 +301,29 @@ def _apply_transformation(
             raise e
 
 
-# PUBLIC FUNCTIONS ############################################################
+# %% public functions ##########################################################
 def split(
-    data: pd.DataFrame, by: str, left_split_key: str, right_split_key: str, **kwds
-) -> Dict[str, pd.DataFrame]:
+    data: pd.DataFrame, by: str, left_split_key: str, right_split_key: str, **kwds: Any
+) -> Dict[str, Optional[pd.DataFrame]]:
     """Split data along index.
 
-    :param data: data to split
-    :type data: pd.DataFrame
-    :param by: type of split
-    :type by: str
-    :param left_split_name: name for left split
-    :type left_split_name: str
-    :param right_split_name: name for right split
-    :type right_split_name: str
-    :returns:
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Data to split.
+    by : str
+        Type of split.
+    left_split_key : str
+        Key for left split
+    right_split_key : str
+        Key for right split
+    kwds : Any
+        Additional keyword arguments to pass to the splitting function.
+
+    Returns
+    -------
+    dict
+        Dictionary containing left and right split data.
 
     """
     if data is None:
@@ -310,18 +345,24 @@ def combine(
     include: List[str],
     exclude: List[str],
     new_key: str = "combined",
-) -> List[pd.DataFrame]:
+) -> Union[Dict[str, pd.DataFrame], pd.DataFrame]:
     """Concatenate multiple DataFrames.
 
-    :param data: dict with data frames to concatenate
-    :type data: Dict[pd.DataFrame]
-    :param include: keys to include
-    :type include: List[str]
-    :param exclude: keys to exclude
-    :type exclude: List[str]
-    :param new_key: new key for concatenated data
-    :type new_key: str
-    :returns:
+    Parameters
+    ----------
+    data : dict
+        Dictionary with data frames to concatenate.
+    include : list
+        Keys to include.
+    exclude : list
+        Keys to exclude.
+    new_key : str
+        New key for concatenated data.
+
+    Returns
+    -------
+    dict or pd.DataFrame
+        Dictionary with combined data or combined DataFrame.
 
     """
     to_combine = []
@@ -342,19 +383,25 @@ def combine(
     return data
 
 
-def column_transformer_fit(data: pd.DataFrame, dump_to_file: str = None, **kwds):
+def column_transformer_fit(
+    data: pd.DataFrame, dump_to_file: Optional[str] = None, **kwds: Any
+) -> Optional[pd.DataFrame]:
     """Fit the data to the input.
 
-    :param data: Input data to fit the ColumnTransformer.
-    :type data: pandas.DataFrame
-    :param dump_to_file: Filepath to write fitted object to.
-    :type dump_to_file: str, optional (default=None)
-    :param **kwds:
-        Other keyword arguments to be passed to the `_get_column_transformer`
-        function.
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Input data to fit the ColumnTransformer.
+    dump_to_file : str, optional
+        Filepath to write fitted object to.
+    kwds : dict
+        Additional keyword arguments to be passed to `_get_column_transformer`.
 
-    :return: pandas DataFrame
+    Returns
+    -------
+    pd.DataFrame
         The input data unchanged.
+
     """
     if data is None:
         return None
@@ -372,17 +419,23 @@ def column_transformer_fit(data: pd.DataFrame, dump_to_file: str = None, **kwds)
         return data
 
 
-def column_transformer_transform(data: pd.DataFrame, **kwds):
-    """
-    Apply the column transformer to the input data.
+def column_transformer_transform(
+    data: pd.DataFrame, **kwds: Any
+) -> Optional[pd.DataFrame]:
+    """Apply the column transformer to the input data.
 
-    :param data: Input data to transform.
-    :type data: pd.DataFrame
-    :param **kwds: Additional keyword arguments to pass to the
-    column transformer.
-    :type **kwds: dict
-    :return: Transformed data.
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Input data to transform.
+    kwds : dict
+        Additional keyword arguments to pass to the column transformer.
+
+    Returns
+    -------
+    pd.DataFrame
+        Transformed data.
+
     """
     if data is None:
         return None
@@ -395,63 +448,82 @@ def column_transformer_transform(data: pd.DataFrame, **kwds):
 
 
 def column_transformer_fit_transform(
-    data: pd.DataFrame, dump_to_file: str = None, **kwds
-):
+    data: pd.DataFrame, dump_to_file: Optional[str] = None, **kwds: Any
+) -> Optional[pd.DataFrame]:
     """Fits and transform the input data.
 
     This function combines ..._fit and ..._transform.
 
-    :param data: input data to be transformed.
-    :type data: pd.DataFrame
-    :param dump_to_file: if specified, saves the fitted column transformer to
-    a file with the given name.
-    :type dump_to_file: str
-    :param kwds: keyword arguments to be passed to the column transformer.
-    :type kwds: dict
-    :return: the transformed data.
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Input data to be transformed.
+    dump_to_file : str, optional
+        If specified, saves the fitted column transformer to a file with the given name.
+    kwds : dict
+        Keyword arguments to be passed to the column transformer.
+
+    Returns
+    -------
+    pd.DataFrame
+        The transformed data.
+
     """
     data = column_transformer_fit(data, dump_to_file, **kwds)
     data = column_transformer_transform(data, **kwds)
     return data
 
 
-def add_date_offset_to_column(data, column, **kwds):
+def add_date_offset_to_column(
+    data: pd.DataFrame, column: str, **kwds: Any
+) -> Optional[pd.DataFrame]:
     """Add a date offset to a date column in a pandas DataFrame.
 
-    :param data: The input pandas DataFrame.
-    :type data: pandas.DataFrame
-    :param column: The name of the date column to which the offset
-    will be applied.
-    :type column: str
-    :param **kwds: Additional arguments to be passed to pandas
-    pd.offsets.DateOffset.
-    :type **kwds: Any
-    :return: The pandas DataFrame with the offset applied to the specified
-    date column.
-    :rtype: pandas.DataFrame
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The input pandas DataFrame.
+    column : str
+        The name of the date column to which the offset will be applied.
+    kwds : any
+        Additional arguments to be passed to pandas pd.offsets.DateOffset.
+
+    Returns
+    -------
+    pd.DataFrame
+        The pandas DataFrame with the offset applied to the specified date column.
+
     """
     if data is not None:
         data[column] += pd.offsets.DateOffset(**kwds)
     return data
 
 
-def apply_transformations(data, transformations, quiet=False):
+def apply_transformations(
+    data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    transformations: List[Dict[str, Any]],
+    quiet: bool = False,
+) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """Apply a list of transformations to a DataFrame or dict of DataFrames.
 
     The main entrypoint for transformations substage.
 
-    :param data: The data to apply transformations to. Can be a pandas
-    DataFrame or a dictionary of pandas DataFrames.
-    :type data: Union[pd.DataFrame, Dict[str, pd.DataFrame]]
-    :param transformations: A list of transformation dictionaries, each
-    specifying an individual transformation to apply.
-    :type transformations: List[Dict[str, Any]]
-    :param quiet: Whether to suppress the progress bar and logging output.
-    Default is False.
-    :type quiet: bool
-    :return: The transformed data.
-    :rtype: Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+    Parameters
+    ----------
+    data : pd.DataFrame or dict
+        The data to apply transformations to.
+        Can be a DataFrame or a dict of DataFrames.
+    transformations : list
+        A list of transformation dictionaries, each specifying
+        individual transformation to apply.
+    quiet : bool, optional
+        Whether to suppress the progress bar and logging output. Default is False.
+
+    Returns
+    -------
+    pd.DataFrame or dict
+        The transformed data.
+
     """
     __LOGGER__.disabled = quiet
     it = tqdm(transformations, disable=quiet, leave=False)

@@ -1,4 +1,5 @@
 """Demonstation module."""
+
 import pandas as pd
 from pandera import Check, Column, DataFrameSchema, Index
 

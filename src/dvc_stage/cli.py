@@ -1,17 +1,15 @@
 # -*- time-stamp-pattern: "changed[\s]+:[\s]+%%$"; -*-
-# AUTHOR INFORMATION ##########################################################
-# file    : dvc_stage.py
-# author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
+# %% Author ####################################################################
+# file    : cli.py
+# author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
-# created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 12:44:16 (Marcel Arpogaus)
-# DESCRIPTION #################################################################
-# ...
-# LICENSE #####################################################################
-# ...
-###############################################################################
-# REQUIRED MODULES ############################################################
+# created : 2024-09-15 13:43:10 (Marcel Arpogaus)
+# changed : 2024-09-15 13:44:11 (Marcel Arpogaus)
+
+# %% Description ###############################################################
 """cli module."""
+
+# %% imports ###################################################################
 import argparse
 import difflib
 import logging
@@ -32,49 +30,57 @@ from dvc_stage.utils import get_deps
 from dvc_stage.validating import apply_validations
 from dvc_stage.writing import write_data
 
-# MODULE GLOBAL VARIABLES #####################################################
+# %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
 
 
-# PRIVATE FUNCTIONS ###########################################################
-def _print_stage_definition(stage):
+# %% private functions #########################################################
+def _print_stage_definition(stage: str) -> None:
     """Print the stage definition for the specified DVC stage in YAML format.
 
-    Args:
-        :param stage: The name of the DVC stage to retrieve the definition for.
-        :type stage: str
+    Parameters
+    ----------
+    stage : str
+        The name of the DVC stage to retrieve the definition for.
+
     """
     config = get_stage_definition(stage)
     print(yaml.dump(config))
 
 
-def _update_dvc_stage(stage):
-    """
-    Update the definition in the `dvc.yaml` file for the specified DVC stage.
+def _update_dvc_stage(stage: str, yes: bool) -> None:
+    """Update the definition in the `dvc.yaml` file for the specified DVC stage.
 
-    Args:
-        :param: stage: The name of the DVC stage to update.
-        :type stage: str
+    Parameters
+    ----------
+    stage : str
+        The name of the DVC stage to update.
+    yes : bool
+        Whether to continue without asking for confirmation.
+
     """
     if stage_definition_is_valid(stage):
         __LOGGER__.info(f"stage definition of {stage} is up to date")
     else:
         __LOGGER__.info(
-            f"stage definition of {stage} is invalid, dvc.yaml need to be updated"
+            f"stage definition of {stage} is invalid, dvc.yaml needs to be updated"
         )
         dvc_yaml = load_dvc_yaml()
         config = get_stage_definition(stage)["stages"][stage]
-        if stage in dvc_yaml["stages"][stage]["cmd"]:
+        if stage in dvc_yaml["stages"]:
             config["cmd"] = dvc_yaml["stages"][stage]["cmd"]
 
         s1 = yaml.dump(dvc_yaml["stages"][stage]).splitlines()
         s2 = yaml.dump(config).splitlines()
         diff = difflib.ndiff(s1, s2)
-        diff = "\n".join(diff)
-        __LOGGER__.info(f"changes:\n{diff}")
+        diff_str = "\n".join(diff)
+        __LOGGER__.info(f"changes:\n{diff_str}")
 
-        __LOGGER__.warn("This will alter your dvc.yaml")
-        answer = input("type [y]es to continue: ")
+        if not yes:
+            __LOGGER__.warning("This will alter your dvc.yaml")
+            answer = input("type [y]es to continue: ")
+        else:
+            answer = "y"
 
         if answer.lower() in ["y", "yes"]:
             dvc_yaml["stages"][stage] = config
@@ -83,26 +89,34 @@ def _update_dvc_stage(stage):
             __LOGGER__.info("dvc.yaml successfully updated")
         else:
             __LOGGER__.error("Operation canceled by user")
-            exit(1)
+            sys.exit(1)
 
 
-def _update_dvc_yaml():
-    """Update all DVC stages defined in the `dvc.yaml` file."""
+def _update_dvc_yaml(yes: bool) -> None:
+    """Update all DVC stages defined in the `dvc.yaml` file.
+
+    Parameters
+    ----------
+    yes : bool
+        Whether to continue without asking for confirmation.
+
+    """
     dvc_yaml = load_dvc_yaml()
     for stage, definition in dvc_yaml["stages"].items():
         if definition.get("cmd", "").startswith("dvc-stage"):
-            _update_dvc_stage(stage)
+            _update_dvc_stage(stage, yes)
 
 
-def _run_stage(stage, validate=True):
-    """
-    Load, apply transformations, validate and write output.
+def _run_stage(stage: str, validate: bool = True) -> None:
+    """Load, apply transformations, validate and write output.
 
-    Args:
-        :param stage: The name of the DVC stage to run.
-        :type stage: str
-        validate (bool, optional): Whether to validate the stage definition
-        before running (default True).
+    Parameters
+    ----------
+    stage : str
+        The name of the DVC stage to run.
+    validate : bool, optional
+        Whether to validate the stage definition before running (default True).
+
     """
     if validate:
         validate_stage_definition(stage)
@@ -119,9 +133,9 @@ def _run_stage(stage, validate=True):
     )
     __LOGGER__.info("all data loaded")
 
-    transformations = stage_params.get("transformations", None)
-    validations = stage_params.get("validations", None)
-    write = stage_params.get("write", None)
+    transformations = stage_params.get("transformations")
+    validations = stage_params.get("validations")
+    write = stage_params.get("write")
 
     if transformations is not None:
         assert write is not None, "No writer configured."
@@ -143,8 +157,8 @@ def _run_stage(stage, validate=True):
         __LOGGER__.info("all data written")
 
 
-# PUBLIC FUNCTIONS ############################################################
-def cli():
+# %% public functions ##########################################################
+def cli() -> None:
     """Define the command-line interface for this script."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -178,9 +192,25 @@ def cli():
     update_cfg_parser.add_argument(
         "stage", help="Name of DVC stage the script is used in"
     )
+    update_cfg_parser.add_argument(
+        "-y",
+        "--yes",
+        help="Continue without asking for confirmation.",
+        action="store_true",
+        default=False,
+    )
     update_cfg_parser.set_defaults(func=_update_dvc_stage)
 
-    update_all_parser = subparsers.add_parser("update-all", help="update dvc config")
+    update_all_parser = subparsers.add_parser(
+        "update-all", help="update all dvc stages in dvc.yaml"
+    )
+    update_all_parser.add_argument(
+        "-y",
+        "--yes",
+        help="Continue without asking for confirmation.",
+        action="store_true",
+        default=False,
+    )
     update_all_parser.set_defaults(func=_update_dvc_yaml)
 
     args = parser.parse_args()
@@ -191,7 +221,7 @@ def cli():
     ]
 
     if args.log_file is not None:
-        handlers += [logging.StreamHandler(args.log_file)]
+        handlers.append(logging.StreamHandler(args.log_file))
 
     logging.basicConfig(
         level=args.log_level.upper(),
@@ -199,12 +229,11 @@ def cli():
         handlers=handlers,
     )
 
-    kwds = dict(
-        filter(
-            lambda kw: kw[0] not in ("log_level", "log_file", "func"),
-            vars(args).items(),
-        )
-    )
+    kwds = {
+        k: v
+        for k, v in vars(args).items()
+        if k not in ("log_level", "log_file", "func")
+    }
 
     args.func(**kwds)
 

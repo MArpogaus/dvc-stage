@@ -1,16 +1,3 @@
 stages:
   demo_pipeline:
     cmd: dvc-stage --log-level ${log_level} run demo_pipeline
-    deps:
-    - load.csv
-    meta:
-      dvc-stage-version: 1.0.0-dev
-    outs:
-    - outdir/out.csv
-    params:
-    - demo_pipeline.load.format
-    - demo_pipeline.load.path
-    - demo_pipeline.transformations
-    - demo_pipeline.validations
-    - demo_pipeline.write.format
-    - demo_pipeline.write.path
