@@ -3,7 +3,7 @@
 [![img](https://img.shields.io/github/stars/MArpogaus/dvc-stage.svg?style=flat-square)](https://github.com/MArpogaus/dvc-stage/stargazers)
 [![img](https://img.shields.io/github/issues/MArpogaus/dvc-stage.svg?style=flat-square)](https://github.com/MArpogaus/dvc-stage/issues)
 [![img](https://img.shields.io/github/license/MArpogaus/dvc-stage.svg?style=flat-square)](https://github.com/MArpogaus/dvc-stage/blob/main/LICENSE)
-[![img](https://img.shields.io/github/actions/workflow/status/MArpogaus/dvc-stage/test.yaml.svg?label=test&style=flat-square)](https://github.com/MArpogaus/dvc-stage/actions/workflows/test.yaml)
+[![img](https://img.shields.io/github/actions/workflow/status/MArpogaus/dvc-stage/run_demo.yaml.svg?label=test&style=flat-square)](https://github.com/MArpogaus/dvc-stage/actions/workflows/run_demo.yaml)
 [![img](https://img.shields.io/github/actions/workflow/status/MArpogaus/dvc-stage/release.yaml.svg?label=release&style=flat-square)](https://github.com/MArpogaus/dvc-stage/actions/workflows/release.yaml)
 [![img](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg?logo=pre-commit&style=flat-square)](https://github.com/MArpogaus/dvc-stage/blob/main/.pre-commit-config.yaml)
 [![img](https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555)](https://linkedin.com/in/MArpogaus)
@@ -13,18 +13,18 @@
 
 # DVC-Stage
 
-1.  [About The Project](#org2ce5616)
-2.  [Getting Started](#orgd5c9d2a)
-    1.  [Prerequisites](#orgb6c61f1)
-    2.  [Installation](#org4a4a796)
-3.  [Usage](#org7523cf7)
-4.  [Contributing](#org06cba36)
-5.  [License](#org88720e8)
-6.  [Contact](#orgbac8fb8)
-7.  [Acknowledgments](#orgd27aafc)
+1.  [About The Project](#org8c385f4)
+2.  [Getting Started](#orgb60b632)
+    1.  [Prerequisites](#orgc8328c6)
+    2.  [Installation](#org86643e5)
+3.  [Usage](#orgc30aa7f)
+4.  [Contributing](#orgee2d7cf)
+5.  [License](#orgededbbb)
+6.  [Contact](#org4d9524e)
+7.  [Acknowledgments](#org3ccffb6)
 
 
-<a id="org2ce5616"></a>
+<a id="org8c385f4"></a>
 
 ## About The Project
 
@@ -36,7 +36,7 @@ This python script provides a easy and parameterizeable way of defining typical 
 -   data validation
 
 
-<a id="orgd5c9d2a"></a>
+<a id="orgb60b632"></a>
 
 ## Getting Started
 
@@ -45,7 +45,7 @@ project locally. To get a local copy up and running follow these simple
 example steps.
 
 
-<a id="orgb6c61f1"></a>
+<a id="orgc8328c6"></a>
 
 ### Prerequisites
 
@@ -54,7 +54,7 @@ example steps.
 -   `pyyaml>=5`
 
 
-<a id="org4a4a796"></a>
+<a id="org86643e5"></a>
 
 ### Installation
 
@@ -64,7 +64,7 @@ You install it and all of its dependencies using pip:
     pip install dvc-stage
 
 
-<a id="org7523cf7"></a>
+<a id="orgc30aa7f"></a>
 
 ## Usage
 
@@ -121,21 +121,21 @@ the function.
 A working demonstration can be found at `examples/`.
 
 
-<a id="org06cba36"></a>
+<a id="orgee2d7cf"></a>
 
 ## Contributing
 
 Any Contributions are greatly appreciated! If you have a question, an issue or would like to contribute, please read our [contributing guidelines](CONTRIBUTING.md).
 
 
-<a id="org88720e8"></a>
+<a id="orgededbbb"></a>
 
 ## License
 
 Distributed under the [GNU General Public License v3](COPYING)
 
 
-<a id="orgbac8fb8"></a>
+<a id="org4d9524e"></a>
 
 ## Contact
 
@@ -145,7 +145,7 @@ Project Link:
 <https://github.com/MArpogaus/dvc-stage>
 
 
-<a id="orgd27aafc"></a>
+<a id="org3ccffb6"></a>
 
 ## Acknowledgments
 
