@@ -1,3 +1,15 @@
+## v1.0.0 (2024-09-15)
+
+### Feat
+
+- add `--yes` flag for automatically confirmation
+
+### Fix
+
+- correct default arguments for included and excluded keys to empty list
+- use python 3.8 compatible type annotations
+- update pandera to a version supporting NumPy 2
+
 ## v1.0.0rc5 (2024-09-13)
 
 ### Feat
