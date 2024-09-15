@@ -42,4 +42,5 @@ jobs:
       run: |
         cd examples
         pip install .
+        dvc-stage update-all -y
         dvc repro
