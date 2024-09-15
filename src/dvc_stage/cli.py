@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <marcel dot arpogaus at gmail dot com>
 #
 # created : 2022-11-15 08:02:51 (Marcel Arpogaus)
-# changed : 2023-02-16 12:44:16 (Marcel Arpogaus)
+# changed : 2024-09-15 13:01:02 (Marcel Arpogaus)
 # DESCRIPTION #################################################################
 # ...
 # LICENSE #####################################################################
@@ -49,7 +49,7 @@ def _print_stage_definition(stage):
     print(yaml.dump(config))
 
 
-def _update_dvc_stage(stage):
+def _update_dvc_stage(stage, yes: bool):
     """
     Update the definition in the `dvc.yaml` file for the specified DVC stage.
 
@@ -74,8 +74,11 @@ def _update_dvc_stage(stage):
         diff = "\n".join(diff)
         __LOGGER__.info(f"changes:\n{diff}")
 
-        __LOGGER__.warn("This will alter your dvc.yaml")
-        answer = input("type [y]es to continue: ")
+        if not yes:
+            __LOGGER__.warn("This will alter your dvc.yaml")
+            answer = input("type [y]es to continue: ")
+        else:
+            answer = "y"
 
         if answer.lower() in ["y", "yes"]:
             dvc_yaml["stages"][stage] = config
@@ -87,12 +90,12 @@ def _update_dvc_stage(stage):
             exit(1)
 
 
-def _update_dvc_yaml():
+def _update_dvc_yaml(yes: bool):
     """Update all DVC stages defined in the `dvc.yaml` file."""
     dvc_yaml = load_dvc_yaml()
     for stage, definition in dvc_yaml["stages"].items():
         if definition.get("cmd", "").startswith("dvc-stage"):
-            _update_dvc_stage(stage)
+            _update_dvc_stage(stage, yes)
 
 
 def _run_stage(stage, validate=True):
@@ -179,9 +182,25 @@ def cli():
     update_cfg_parser.add_argument(
         "stage", help="Name of DVC stage the script is used in"
     )
+    update_cfg_parser.add_argument(
+        "-y",
+        "--yes",
+        help="Continue without asking for confirmation.",
+        action="store_true",
+        default=False,
+    )
     update_cfg_parser.set_defaults(func=_update_dvc_stage)
 
-    update_all_parser = subparsers.add_parser("update-all", help="update dvc config")
+    update_all_parser = subparsers.add_parser(
+        "update-all", help="update all dvc stages in dvc.yaml"
+    )
+    update_all_parser.add_argument(
+        "-y",
+        "--yes",
+        help="Continue without asking for confirmation.",
+        action="store_true",
+        default=False,
+    )
     update_all_parser.set_defaults(func=_update_dvc_yaml)
 
     args = parser.parse_args()
