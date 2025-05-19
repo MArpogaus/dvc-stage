@@ -108,9 +108,9 @@ def get_deps(
 
     deps = list(sorted(set(deps)))
 
-    assert (
-        len(deps) > 0
-    ), f'Dependencies not found for path "{path}".\nIs DVC Pipeline up to date?'
+    assert len(deps) > 0, (
+        f'Dependencies not found for path "{path}".\nIs DVC Pipeline up to date?'
+    )
 
     return deps, param_keys
 

@@ -5,7 +5,7 @@ repos:
     id: ruff
   - id: ruff-format
   repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.6.5
+  rev: v0.11.10
 - hooks:
   - id: check-added-large-files
   - id: check-executables-have-shebangs
@@ -17,7 +17,7 @@ repos:
   - id: mixed-line-ending
   - id: trailing-whitespace
   repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.6.0
+  rev: v5.0.0
 - hooks:
   - args:
     - --autofix
@@ -34,8 +34,6 @@ repos:
   rev: v2.14.0
 - hooks:
   - id: commitizen
-  - id: commitizen-branch
-    stages:
-    - push
+    stages: [commit-msg]
   repo: https://github.com/commitizen-tools/commitizen
-  rev: v3.29.0
+  rev: v4.7.2

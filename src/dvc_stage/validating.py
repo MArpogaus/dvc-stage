@@ -4,13 +4,14 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 14:05:05 (Marcel Arpogaus)
-# changed : 2024-09-15 14:30:56 (Marcel Arpogaus)
+# changed : 2025-05-19 11:12:16 (Marcel Arpogaus)
 
 
 # %% Description ###############################################################
 """validating module."""
 
 # %% imports ###################################################################
+import inspect
 import logging
 from typing import Any, Dict, List, Union
 
@@ -164,7 +165,7 @@ def _apply_validation(
 
 # %% public functions ##########################################################
 def validate_pandera_schema(
-    data: pd.DataFrame, schema: Union[dict, str], key: str = None
+    data: pd.DataFrame, schema: Union[dict, str], **kwargs: Dict[str, Any]
 ) -> bool:
     """Validate a Pandas DataFrame `data` against a Pandera schema.
 
@@ -177,8 +178,8 @@ def validate_pandera_schema(
         Can be specified as a dictionary with keys "import_from", "from_yaml",
         "from_json", or a string that specifies a file path to a serialized
         Pandera schema object.
-    key : str, optional
-        Optional key to be passed to the Pandera schema function.
+    kwargs : Dict[str, Any]
+        Optional keyword arguments to be passed to the Pandera schema function.
 
     Returns
     -------
@@ -200,7 +201,11 @@ def validate_pandera_schema(
             schema = import_from_string(import_from)
             if not isinstance(schema, pa.DataFrameSchema):
                 if callable(schema):
-                    schema = schema(key)
+                    sig = inspect.signature(schema)
+                    if len(sig.parameters):
+                        schema = schema(**kwargs)
+                    else:
+                        schema = schema()
                 else:
                     raise ValueError(
                         f"Schema imported from {import_from} has invalid type: {type(schema)}"  # noqa E501
