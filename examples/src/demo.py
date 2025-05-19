@@ -17,7 +17,7 @@ def isNotNone(data):
     return data is not None
 
 
-def get_schema(data):
+def get_schema():
     """Return Pandera Schema for Demo Data."""
     return DataFrameSchema(
         columns={
