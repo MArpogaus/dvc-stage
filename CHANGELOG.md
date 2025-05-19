@@ -1,3 +1,9 @@
+## v1.0.1 (2025-05-19)
+
+### Feat
+
+- pass arbitrary keyword arguments to pandera scheme function
+
 ## v1.0.0 (2024-09-15)
 
 ### Feat
