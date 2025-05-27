@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:48:10 (Marcel Arpogaus)
-# changed : 2024-09-15 13:49:32 (Marcel Arpogaus)
+# changed : 2025-05-27 15:18:13 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """config module."""
@@ -79,7 +79,7 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
     write = stage_params.get("write", None)
     load = stage_params["load"]
 
-    # if the format is None data loading is skipped and None is returned tracing
+    # if the format is None data loading is skipped and None is returned
     load["format"] = None
 
     data = load_data(paths=deps, quiet=True, **load)

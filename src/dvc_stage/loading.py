@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:51:13 (Marcel Arpogaus)
-# changed : 2024-09-15 14:23:53 (Marcel Arpogaus)
+# changed : 2025-05-27 15:16:24 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """loading module."""
@@ -94,7 +94,8 @@ def load_data(
     Parameters
     ----------
     format : str
-        The format to load the data from.
+        The format to load the data from. If the format is None data loading is skipped
+        and a dict without data is returned for tracing.
     paths : str or list
         The file path(s) to load the data from.
     key_map : dict, optional
@@ -118,8 +119,6 @@ def load_data(
 
     """
     __LOGGER__.disabled = quiet
-    if len(paths) == 1:
-        paths = paths[0]
     if isinstance(paths, list):
         __LOGGER__.debug("got a list of paths")
         data = {}
