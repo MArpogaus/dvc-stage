@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:43:10 (Marcel Arpogaus)
-# changed : 2024-09-15 13:44:11 (Marcel Arpogaus)
+# changed : 2025-05-27 15:18:30 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """cli module."""
@@ -225,7 +225,6 @@ def cli() -> None:
 
     logging.basicConfig(
         level=args.log_level.upper(),
-        format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=handlers,
     )
 
