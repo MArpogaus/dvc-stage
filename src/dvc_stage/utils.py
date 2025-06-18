@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:18:39 (Marcel Arpogaus)
-# changed : 2024-09-15 14:24:02 (Marcel Arpogaus)
+# changed : 2025-05-27 16:47:41 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """utils module."""
@@ -152,6 +152,8 @@ def key_is_skipped(key: str, include: List[str], exclude: List[str]) -> bool:
         True if the key should be skipped, False otherwise.
 
     """
-    cond = (key in exclude) or (len(include) > 0 and key not in include)
+    cond = re.fullmatch("|".join(exclude), key) or (
+        len(include) > 0 and not re.fullmatch("|".join(include), key)
+    )
     __LOGGER__.debug(f'key "{key}" is {"" if cond else "not "}skipped')
     return cond
