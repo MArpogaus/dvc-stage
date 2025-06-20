@@ -1,5 +1,6 @@
 # Inspired by: https://github.com/othneildrew/Best-README-Template
 #+OPTIONS: toc:nil
+#+startup: indent
 
 [[https://github.com/MArpogaus/dvc-stage/graphs/contributors][https://img.shields.io/github/contributors/MArpogaus/dvc-stage.svg?style=flat-square]]
 [[https://github.com/MArpogaus/dvc-stage/network/members][https://img.shields.io/github/forks/MArpogaus/dvc-stage.svg?style=flat-square]]
@@ -50,62 +51,220 @@ You install it and all of its dependencies using pip:
 
 ** Usage
 
-DVC-Stage works ontop of two files: =dvc.yaml= and =params.yaml=. They
-are expected to be at the root of an initialized [[https://dvc.org/][dvc
-project]]. From there you can execute =dvc-stage -h= to see available
-commands or =dvc-stage get-config STAGE= to generate the dvc stages from
-the =params.yaml= file. The tool then generates the respective yaml
-which you can then manually paste into the =dvc.yaml= file. Existing
-stages can then be updated inplace using =dvc-stage update-stage STAGE=.
+DVC-Stage works on top of two files: =dvc.yaml= and =params.yaml=.
+They are expected to be at the root of an initialized [[https://dvc.org/][dvc project]].
+From there you can execute =dvc-stage -h= to see available commands or =dvc-stage get-config STAGE= to generate the dvc stages from the =params.yaml= file.
+The tool then generates the respective yaml which you can then manually paste into the =dvc.yaml= file.
+Existing stages can then be updated inplace using =dvc-stage update-stage STAGE=.
+
+*** Basic Stage Structure
 
 Stages are defined inside =params.yaml= in the following schema:
 
 #+begin_src yaml
-    STAGE_NAME:
-      load: {}
-      transformations: []
-      validations: []
-      write: {}
+STAGE_NAME:
+  load: {}
+  transformations: []
+  validations: []
+  write: {}
 #+end_src
 
-The =load= and =write= sections both require the yaml-keys =path= and
-=format= to read and save data respectively.
+The =load= and =write= sections both require the yaml-keys =path= and =format= to read and save data respectively.
 
-The =transformations= and =validations= sections require a sequence of
-functions to apply, where =transformations= return data and
-=validations= return a truth value (derived from data). Functions are
-defined by the key =id= an can be either:
+The =transformations= and =validations= sections require a sequence of functions to apply, where =transformations= return data and =validations= return a truth value (derived from data).
+Functions are defined by the key =id= and can be either:
 
-- Methods defined on Pandas Dataframes, e.g.
+- Methods defined on Pandas DataFrames, e.g.
   #+begin_src yaml
-    transformations:
-      - id: transpose
+  transformations:
+    - id: transpose
   #+end_src
 
 - Imported from any python module, e.g.
   #+begin_src yaml
-    transformations:
-      - id: custom
-        description: duplikate rows
-        import_from: demo.duplicate
+  transformations:
+    - id: custom
+      description: duplicate rows
+      import_from: demo.duplicate
   #+end_src
 
 - Predefined by DVC-Stage, e.g.
   #+begin_src yaml
-    validations:
-      - id: validate_pandera_schema
-        schema:
-          import_from: demo.get_schema
+  validations:
+    - id: validate_pandera_schema
+      schema:
+        import_from: demo.get_schema
   #+end_src
 
-When writing a custom function, you need to make sure the function
-gracefully handles data being =None=, which is required for type
-inference. Data is passed as first argument. Further arguments can be
-provided as additional keys, as shown above for
-=validate_pandera_schema=, where schema is passed as second argument to
-the function.
+When writing a custom function, you need to make sure the function gracefully handles data being =None=, which is required for type inference.
+Data is passed as first argument.
+Further arguments can be provided as additional keys, as shown above for =validate_pandera_schema=, where schema is passed as second argument to the function.
 
-A working demonstration can be found at =examples/=.
+*** Examples
+
+The =examples= directory contains a complete working demonstration:
+
+1. *Setup*: Navigate to the examples directory
+2. *Data*: Sample data files are provided in =data=
+3. *Configuration*: =params.yaml= contains all pipeline definitions
+4. *Custom functions*: =src/demo.py= contains example custom functions
+5. *DVC configuration*: =dvc.yaml= contains the generated DVC stages
+
+To run all examples:
+#+begin_src bash
+  cd examples
+
+  # Update all stage deffinitions
+  dvc-stage update-all -y
+
+  # Reproduce pipeline
+  dvc repro
+#+end_src
+
+**** Example 1: Basic Demo Pipeline
+
+The simplest example demonstrates basic data loading, transformation, validation, and writing:
+
+#+include: "examples/params.yaml" src yaml :lines "6-36"
+
+*What this pipeline does:*
+1. *Load*: Reads data from =load.csv=
+2. *Transform*:
+   - Duplicates all rows using a custom function
+   - Transposes the DataFrame
+   - Renames columns from numeric to meaningful names
+3. *Validate*:
+   - Checks that data is not None
+   - Ensures no null values exist
+   - Validates against a Pandera schema
+4. *Write*: Saves the result to =outdir/out.csv=
+
+*Run with:*
+#+begin_src bash
+cd examples
+dvc repro demo_pipeline
+#+end_src
+
+**** Example 2: Foreach Pipeline
+
+Process multiple datasets with the same pipeline using foreach stages:
+
+#+include: "examples/params.yaml" src yaml :lines "39-64"
+
+*What this pipeline does:*
+1. *Foreach*: Processes three datasets (dataset_a, dataset_b, dataset_c)
+2. *Load*: Reads from =data/${item}/input.csv= where =${item}= is replaced with each dataset name
+3. *Transform*:
+   - Fills missing values with 0
+   - Normalizes specified columns using min-max scaling
+4. *Validate*:
+   - Validates against a pandera schema
+   - Checks data quality (minimum row count)
+5. *Write*: Saves each processed dataset to =outdir/${item}_${key}_processed.csv=
+
+*Run with:*
+#+begin_src bash
+cd examples
+dvc repro foreach_pipeline
+#+end_src
+
+**** Example 3: Advanced Multi-Input Pipeline
+
+Handle multiple input files with data splitting:
+
+#+include: "examples/params.yaml" src yaml :lines "67-98"
+
+*What this pipeline does:*
+1. *Load*: Reads multiple files and maps them to keys (features, labels)
+2. *Transform*:
+   - The features table is spitted along the categories in two data frames containing each 50% of the data
+   - The spitted data is again combined into a single table
+3. *Validate*: Validates both train and test sets against a schema
+4. *Write*: Saves train.csv and test.csv to the output directory
+
+*Run with:*
+#+begin_src bash
+cd examples
+dvc repro advanced_pipeline
+#+end_src
+
+**** Example 4: Time Series Pipeline
+
+Process time series data with date-based splitting:
+
+#+include: "examples/params.yaml" src yaml :lines "101-137"
+
+*What this pipeline does:*
+1. *Load*: Reads time series data with proper datetime parsing
+2. *Transform*:
+   - Reset pandas index
+   - Adds a date offset to the timestamps
+   - Splits data chronologically (80% train, 20% test) by date
+   - Set timestamp as index
+3. *Validate*:
+   - Validates against a time series specific schema
+   - Validate the split ratio
+4. *Write*: Saves timeseries_train.csv and timeseries_test.csv
+
+*Run with:*
+#+begin_src bash
+cd examples
+dvc repro timeseries_pipeline
+#+end_src
+
+*** Built-in Transformations
+
+DVC-Stage provides several built-in transformations:
+
+- *split*: Split data (random, date_time, or id-based)
+- *combine*: Combine multiple DataFrames
+- *column_transformer_fit*: Fit sklearn column transformers
+- *column_transformer_transform*: Apply fitted transformers
+- *add_date_offset_to_column*: Add time offsets to date columns
+
+ Additionally all pandas DataFrame methods can be used, e.g.:
+
+- *fillna*: Fill missing values
+- *dropna*: Drop rows with missing values
+- *transpose*: Transpose the DataFrame
+- *rename*: Rename columns
+
+*** Built-in Validations
+
+DVC-Stage provides several built-in validations:
+
+- *validate_pandera_schema*: Validate against Pandera schemas
+- *Custom validations*: Import your own validation functions
+
+Additionally all pandas DataFrame methods can be used, e.g.:
+
+- *isnull*: Check for null values
+
+*** Using Custom Functions
+
+When creating custom functions for transformations or validations:
+
+1. *Handle None gracefully*: Your function should return appropriate values when data is None
+2. *First argument is data*: The DataFrame or data structure is always the first parameter
+3. *Additional parameters*: Pass extra arguments as YAML keys in your stage definition
+4. *Return appropriate types*: Transformations return data, validations return boolean values
+
+Example custom function:
+#+begin_src python
+def normalize_data(data: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
+    """Normalize specified columns using min-max scaling."""
+    if data is None:
+        return None
+
+    result = data.copy()
+    for col in columns:
+        if col in result.columns:
+            min_val = result[col].min()
+            max_val = result[col].max()
+            if max_val > min_val:
+                result[col] = (result[col] - min_val) / (max_val - min_val)
+    return result
+#+end_src
 
 ** Contributing
 

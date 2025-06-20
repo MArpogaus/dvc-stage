@@ -1,12 +1,18 @@
 log_level: debug
+log_file: dvc.log
 empty_param: []
+
+# Basic demo pipeline (existing)
 demo_pipeline:
+  dvc_stage_args:
+    log-level: ${log_level}
+    log-file: ${log_file}
   load:
     path: load.csv
     format: csv
   transformations:
   - id: custom
-    description: duplikate rows
+    description: duplicate rows
     import_from: demo.duplicate
   - id: transpose
   - id: rename
@@ -28,3 +34,104 @@ demo_pipeline:
   write:
     format: csv
     path: outdir/out.csv
+
+# Extended example: Foreach pipeline
+foreach_pipeline:
+  dvc_stage_args:
+    log-level: ${log_level}
+    log-file: ${log_file}
+  foreach: [dataset_a, dataset_b, dataset_c]
+  load:
+    path: data/${item}/input.csv
+    format: csv
+  transformations:
+  - id: fillna
+    value: 0
+  - id: custom
+    description: normalize data
+    import_from: demo.normalize_data
+    columns: [value1, value2]
+  validations:
+  - id: validate_pandera_schema
+    schema:
+      import_from: demo.get_foreach_schema
+  - id: custom
+    description: check data quality
+    import_from: demo.check_data_quality
+    min_rows: 5
+  write:
+    path: outdir/${item}_${key}_processed.csv
+    format: csv
+
+# Extended example: Multi-input pipeline with splitting
+advanced_pipeline:
+  dvc_stage_args:
+    log-level: ${log_level}
+    log-file: ${log_file}
+  load:
+    path:
+    - data/features.csv
+    - data/labels.csv
+    format: csv
+    key_map:
+      features: data/features.csv
+      labels: data/labels.csv
+  transformations:
+  - id: split
+    include: [features]
+    by: id
+    id_col: category
+    left_split_key: train
+    right_split_key: test
+    size: 0.5
+    seed: 42
+  - id: combine
+    include: [train, test]
+    new_key: combined_data
+  validations:
+  - id: validate_pandera_schema
+    schema:
+      import_from: demo.get_advanced_schema
+    include: [combined]
+  write:
+    path: outdir/${key}.csv
+    format: csv
+
+# Extended example: Time series pipeline
+timeseries_pipeline:
+  dvc_stage_args:
+    log-level: ${log_level}
+    log-file: ${log_file}
+  load:
+    path: data/timeseries.csv
+    format: csv
+    parse_dates: [timestamp]
+    index_col: timestamp
+  transformations:
+  - id: reset_index
+  - id: add_date_offset_to_column
+    column: timestamp
+    days: 1
+  - id: split
+    by: date_time
+    left_split_key: train
+    right_split_key: test
+    size: 0.8
+    freq: D
+    date_time_col: timestamp
+  - id: set_index
+    keys: timestamp
+  validations:
+  - id: validate_pandera_schema
+    schema:
+      import_from: demo.get_timeseries_schema
+  - id: custom
+    description: validate split ratio
+    pass_dict_to_fn: true
+    import_from: demo.validate_split_ratio
+    reduction: none
+    expected_ratio: 0.8
+    tolerance: 0.05
+  write:
+    path: outdir/timeseries_${key}.csv
+    format: csv

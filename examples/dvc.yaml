@@ -1,3 +1,11 @@
 stages:
   demo_pipeline:
-    cmd: dvc-stage --log-level ${log_level} run demo_pipeline
+    cmd: dvc-stage --log-level ${log_level} --log-file ${log_file} run demo_pipeline
+  foreach_pipeline:
+    foreach: []
+    do:
+      cmd: dvc-stage --log-level ${log_level} --log-file ${log_file} run foreach_pipeline --item ${item}
+  advanced_pipeline:
+    cmd: dvc-stage --log-level ${log_level} --log-file ${log_file} run advanced_pipeline
+  timeseries_pipeline:
+    cmd: dvc-stage --log-level ${log_level} --log-file ${log_file} run timeseries_pipeline

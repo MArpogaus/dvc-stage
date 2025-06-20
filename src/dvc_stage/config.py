@@ -4,14 +4,15 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:48:10 (Marcel Arpogaus)
-# changed : 2024-09-15 13:49:32 (Marcel Arpogaus)
+# changed : 2025-06-20 14:56:17 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """config module."""
 
 # %% imports ###################################################################
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, Tuple
 
 import dvc.api
 import yaml
@@ -19,20 +20,19 @@ import yaml
 import dvc_stage
 from dvc_stage.loading import load_data
 from dvc_stage.transforming import apply_transformations
-from dvc_stage.utils import flatten_dict, get_deps
-from dvc_stage.writing import get_outs
+from dvc_stage.utils import flatten_dict, get_deps, get_outs
 
 # %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
 
 
 # %% functions #################################################################
-def load_dvc_yaml() -> Dict[str, Any]:
+def load_dvc_yaml() -> dict[str, any]:
     """Load and return the dvc.yaml file as a dictionary.
 
     Returns
     -------
-    dict
+    dict[str, any]
         The contents of dvc.yaml file.
 
     """
@@ -43,7 +43,7 @@ def load_dvc_yaml() -> Dict[str, Any]:
     return dvc_yaml
 
 
-def get_stage_definition(stage: str) -> Dict[str, Any]:
+def get_stage_definition(stage: str) -> dict[str, any]:
     """Generate a dvc stage definition dictionary based on the given stage name.
 
     Parameters
@@ -53,7 +53,7 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
 
     Returns
     -------
-    dict
+    dict[str, any]
         The dvc stage definition dictionary.
 
     """
@@ -66,9 +66,15 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
     dvc_params += list(param_keys)
 
     config = stage_params.get("extra_stage_fields", {})
+    dvc_stage_args = ""
+    for k, v in stage_params.get("dvc_stage_args", {}).items():
+        dvc_stage_args += f" --{k} {v}"
+    dvc_stage_run_args = ""
+    for k, v in stage_params.get("dvc_stage_run_args", {}).items():
+        dvc_stage_run_args += f" --{k} {v}"
     config.update(
         {
-            "cmd": f"dvc-stage run {stage}",
+            "cmd": f"dvc-stage{dvc_stage_args} run{dvc_stage_run_args} {stage}",
             "deps": deps + stage_params.get("extra_deps", []),
             "params": list(sorted(dvc_params)),
             "meta": {"dvc-stage-version": dvc_stage.__version__},
@@ -79,7 +85,7 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
     write = stage_params.get("write", None)
     load = stage_params["load"]
 
-    # if the format is None data loading is skipped and None is returned tracing
+    # if the format is None data loading is skipped and None is returned
     load["format"] = None
 
     data = load_data(paths=deps, quiet=True, **load)
@@ -90,6 +96,9 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
         outs = get_outs(data, **write)
         config["outs"] = outs + stage_params.get("extra_outs", [])
 
+    if "foreach" in stage_params:
+        config["cmd"] = config["cmd"] + " --item ${item}"
+        config = {"foreach": stage_params["foreach"], "do": config}
     config = {"stages": {stage: config}}
 
     return config
@@ -112,8 +121,6 @@ def stage_definition_is_valid(stage: str) -> bool:
     dvc_yaml = load_dvc_yaml()["stages"][stage]
     __LOGGER__.debug(f"dvc.yaml:\n{yaml.dump(dvc_yaml)}")
     config = get_stage_definition(stage)["stages"][stage]
-    if stage in dvc_yaml["cmd"]:
-        config["cmd"] = dvc_yaml["cmd"]
     __LOGGER__.debug(f"expected:\n{yaml.dump(config)}")
 
     return dvc_yaml == config
@@ -138,7 +145,7 @@ def validate_stage_definition(stage: str) -> None:
 
 def get_stage_params(
     stage: str, all: bool = False
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> tuple[dict[str, any], dict[str, any]]:
     """Retrieve and return the stage parameters and global parameters as a tuple.
 
     Parameters
@@ -146,11 +153,11 @@ def get_stage_params(
     stage : str
         The name of the dvc stage.
     all : bool, optional
-        If True, retrieve all stages' parameters. Defaults to False.
+        If True, retrieve all stages' parameters. Default is False.
 
     Returns
     -------
-    tuple
+    tuple[dict[str, any], dict[str, any]]
         A tuple (stage_params, global_params) containing the
         stage parameters and global parameters as dictionaries.
 

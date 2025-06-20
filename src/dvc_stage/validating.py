@@ -4,16 +4,17 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 14:05:05 (Marcel Arpogaus)
-# changed : 2025-05-19 11:12:16 (Marcel Arpogaus)
+# changed : 2025-06-20 14:55:53 (Marcel Arpogaus)
 
 
 # %% Description ###############################################################
 """validating module."""
 
 # %% imports ###################################################################
+from __future__ import annotations
+
 import inspect
 import logging
-from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -64,54 +65,58 @@ def _get_validation(id: str, data: any, import_from: str) -> callable:
 def _apply_validation(
     data: any,
     id: str,
-    import_from: str = None,
+    import_from: str | None = None,
     reduction: str = "any",
     expected: bool = True,
-    include: List[str] = [],
-    exclude: List[str] = [],
+    include: list[str] = [],
+    exclude: list[str] = [],
     pass_key_to_fn: bool = False,
-    **kwds: Dict[str, Any],
+    pass_dict_to_fn: bool = False,
+    **kwds: dict[str, any],
 ) -> None:
-    """Apply a validation function to a given data.
+    """Apply a validation function to given data.
 
     Parameters
     ----------
-    data : Union[pd.DataFrame, Dict[str, pd.DataFrame]]
-        The data to be validated. It can be a DataFrame or a dictionary of DataFrames.
+    data : pd.DataFrame | dict[str, pd.DataFrame]
+        The data to be validated. Can be a DataFrame or a dictionary of DataFrames.
     id : str
         The identifier for the validation function to be applied.
         If 'custom', import_from is used as the function name.
-    import_from : str, optional
+    import_from : str | None, optional
         The module path of the custom validation function to be imported.
-    reduction : str
+        Default is None.
+    reduction : str, optional
         The method used to reduce the boolean result of the validation function.
-        It can be:
-          - 'any': the data will be considered valid if at least one of the rows or
-            columns is valid.
-          - 'all': the data will be considered valid only if all rows or
-            columns are valid.
-          - 'none': the data will not be reduced and the validation output will be
-            returned in full.
-    expected : bool
-        The expected output of the validation.
-    include : List[str]
-        List of keys to include in the validation. If empty, all keys will be included.
-    exclude : List[str]
-        List of keys to exclude from the validation.
-    pass_key_to_fn : bool
-        Flag to indicate if the key should be passed to the validation function.
-    kwds : Dict[str, Any]
-        Additional keyword arguments to be passed to the validation function.
+        Can be:
+        - 'any': data is valid if at least one row/column is valid
+        - 'all': data is valid only if all rows/columns are valid
+        - 'none': data is not reduced and validation output is returned in full
+        Default is "any".
+    expected : bool, optional
+        The expected output of the validation. Default is True.
+    include : list[str], optional
+        List of keys to include in validation. If empty, all keys are included.
+        Default is None.
+    exclude : list[str], optional
+        List of keys to exclude from validation. Default is None.
+    pass_key_to_fn : bool, optional
+        If True, pass the key value to the custom validation function. Default is False.
+    pass_dict_to_fn : bool, optional
+        If True, pass the raw data dict to the validation function. Default is False.
+    **kwds : dict[str, any]
+        Additional keyword arguments passed to the validation function.
 
     Raises
     ------
     ValueError
-        If the validation function with the given identifier is not found.
+        If the validation function with the given identifier is not found
+        or if the reduction method is unsupported.
     AssertionError
         If the validation output does not match the expected output.
 
     """
-    if isinstance(data, dict):
+    if isinstance(data, dict) and not pass_dict_to_fn:
         __LOGGER__.debug("arg is dict")
         it = tqdm(data.items(), leave=False)
         for key, df in it:
@@ -135,6 +140,10 @@ def _apply_validation(
         __LOGGER__.debug(f"applying validation: {id}")
         fn = _get_validation(id, data, import_from)
 
+        if pass_dict_to_fn:
+            kwds["include"] = include
+            kwds["exclude"] = exclude
+
         try:
             data = fn(data, **kwds)
         except Exception as e:
@@ -157,7 +166,7 @@ def _apply_validation(
             )
 
         assert reduced == expected, (
-            f"Validation '{id}' with reduction method '{reduction}'"
+            f"Validation '{id}' with reduction method '{reduction}' "
             f"evaluated to: {reduced}\n"
             f"Expected: {expected}"
         )
@@ -165,26 +174,25 @@ def _apply_validation(
 
 # %% public functions ##########################################################
 def validate_pandera_schema(
-    data: pd.DataFrame, schema: Union[dict, str], **kwargs: Dict[str, Any]
+    data: pd.DataFrame, schema: dict | str, **kwargs: dict[str, any]
 ) -> bool:
-    """Validate a Pandas DataFrame `data` against a Pandera schema.
+    """Validate a Pandas DataFrame against a Pandera schema.
 
     Parameters
     ----------
-    data : pandas.DataFrame
+    data : pd.DataFrame
         Pandas DataFrame to be validated.
-    schema : Union[dict, str]
-        Schema to validate against.
-        Can be specified as a dictionary with keys "import_from", "from_yaml",
-        "from_json", or a string that specifies a file path to a serialized
-        Pandera schema object.
-    kwargs : Dict[str, Any]
-        Optional keyword arguments to be passed to the Pandera schema function.
+    schema : dict | str
+        Schema to validate against. Can be specified as a dictionary with
+        keys "import_from", "from_yaml", "from_json", or a string that specifies
+        a file path to a serialized Pandera schema object.
+    **kwargs : dict[str, any]
+        Optional keyword arguments passed to the Pandera schema function.
 
     Returns
     -------
     bool
-        Returns True if the DataFrame validates against the schema.
+        True if the DataFrame validates against the schema.
 
     Raises
     ------
@@ -227,15 +235,21 @@ def validate_pandera_schema(
     return True
 
 
-def apply_validations(data: any, validations: List[dict]) -> None:
+def apply_validations(
+    data: any,
+    validations: list[dict],
+    item: str | None = None,
+) -> None:
     """Apply validations to input data. Entrypoint for validation substage.
 
     Parameters
     ----------
-    data : pandas.DataFrame or dict of pandas.DataFrame
+    data : pd.DataFrame | dict[str, pd.DataFrame]
         Input data.
-    validations : List[dict]
+    validations : list[dict]
         List of dictionaries containing validation parameters.
+    item : str | None, optional
+        Item identifier for foreach stages. Default is None.
 
     """
     __LOGGER__.debug("applying validations")
@@ -244,4 +258,6 @@ def apply_validations(data: any, validations: List[dict]) -> None:
     with logging_redirect_tqdm():
         for kwds in it:
             it.set_description(kwds.pop("description", kwds["id"]))
+            if kwds.pop("pass_item_to_fn", False):
+                kwds["item"] = item
             _apply_validation(data=data, **kwds)

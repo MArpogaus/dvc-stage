@@ -4,24 +4,25 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:54:07 (Marcel Arpogaus)
-# changed : 2024-09-15 14:37:13 (Marcel Arpogaus)
+# changed : 2025-06-20 14:58:09 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining common transformations."""
 
 # %% imports ###################################################################
+from __future__ import annotations
+
 import importlib
 import logging
 import os
 import pickle
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from dvc_stage.utils import import_from_string, key_is_skipped
+from dvc_stage.utils import import_from_string, key_is_skipped, parse_path
 
 # %% globals ###################################################################
 __COLUMN_TRANSFORMER_CACHE__ = {}
@@ -31,10 +32,12 @@ __LOGGER__ = logging.getLogger(__name__)
 # %% private functions #########################################################
 def _date_time_split(
     data: pd.DataFrame, size: float, freq: str, date_time_col: str
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Split data along date time axis.
 
-    NOTE: Only tested for Monthly splits so far
+    Notes
+    -----
+    Only tested for Monthly splits so far.
 
     Parameters
     ----------
@@ -49,7 +52,7 @@ def _date_time_split(
 
     Returns
     -------
-    tuple
+    tuple[pd.DataFrame, pd.DataFrame]
         Tuple containing left and right split data.
 
     """
@@ -59,24 +62,25 @@ def _date_time_split(
     data.set_index(date_time_col, inplace=True)
 
     # Reserve some data for testing
-    periods = len(pd.period_range(start_point, end_date, freq=freq))
-    split_point = start_point + int(np.round(size * periods)) * pd.offsets.MonthBegin()
+    period_range = pd.period_range(start_point, end_date, freq=freq)
+    periods = len(period_range)
+    split_point = int(np.round(size * periods))
+    left_periods = period_range[:split_point]
+    right_periods = period_range[split_point:]
+    __LOGGER__.debug(f"left split from {left_periods.min()} till {left_periods.max()}")
     __LOGGER__.debug(
-        f"left split from {start_point} till {split_point - pd.offsets.Minute(30)}"
+        f"right split from {right_periods.min()} till {right_periods.max()}"
     )
-    __LOGGER__.debug(f"right split from {split_point} till {end_date}")
 
-    left_split_str = str(split_point - pd.offsets.Minute(30))
-    right_split_str = str(split_point)
-    left_data = data.loc[:left_split_str].reset_index()
-    right_data = data.loc[right_split_str:].reset_index()
+    left_data = data.loc[: str(left_periods.max())].reset_index()
+    right_data = data.loc[str(right_periods.min()) :].reset_index()
 
     return left_data, right_data
 
 
 def _id_split(
-    data: pd.DataFrame, size: float, seed: int, id_col: str
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    data: pd.DataFrame, size: float, seed: int, id_col: str | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Split data on a random set of ids.
 
     Parameters
@@ -87,36 +91,40 @@ def _id_split(
         Amount of random ids in the left split.
     seed : int
         Seed used for id shuffling.
-    id_col : str
-        Column containing id information.
+    id_col : str | None, optional
+        Column containing id information. Default is None.
 
     Returns
     -------
-    tuple
+    tuple[pd.DataFrame, pd.DataFrame]
         Tuple containing left and right split data.
 
     """
     np.random.seed(seed)
-    ids = list(sorted(data[id_col].unique()))
-    np.random.shuffle(ids)
-    ids = ids[: int(size * len(ids))]
-    mask = data[id_col].isin(ids)
+    if id_col:
+        ids = data[id_col]
+    else:
+        ids = data.index
+    unique_ids = list(sorted(ids.unique()))
+    np.random.shuffle(unique_ids)
+    selected_ids = unique_ids[: int(size * len(unique_ids))]
+    mask = ids.isin(selected_ids)
     return data[mask], data[~mask]
 
 
-def _initialize_sklearn_transformer(transformer_class_name: str, **kwds: Any) -> Any:
+def _initialize_sklearn_transformer(transformer_class_name: str, **kwds: any) -> any:
     """Create an instance of the specified transformer class.
 
     Parameters
     ----------
     transformer_class_name : str
         The name of the transformer class, "drop" or "passthrough".
-    kwds : Any
+    **kwds : any
         Optional keyword arguments to pass to the transformer class constructor.
 
     Returns
     -------
-    object
+    any
         An instance of the specified transformer class.
 
     """
@@ -136,25 +144,25 @@ def _initialize_sklearn_transformer(transformer_class_name: str, **kwds: Any) ->
 
 
 def _get_column_transformer(
-    transformers: List[Dict[str, Any]], remainder: str = "drop", **kwds: Any
-) -> Any:
+    transformers: list[dict[str, any]], remainder: str = "drop", **kwds: any
+) -> any:
     """Build a Scikit-Learn ColumnTransformer from a list of dictionaries.
 
     Parameters
     ----------
-    transformers : list
+    transformers : list[dict[str, any]]
         List of transformer dictionaries.
         Each dictionary must contain a "class_name" key with the name of the transformer
         class, and a "columns" key with a list of columns to apply the transformer to.
     remainder : str, optional
         How to handle columns that were not specified in the transformers.
-        Default: "drop"
-    kwds : dict
+        Default is "drop".
+    **kwds : any
         Additional keyword arguments to pass to ColumnTransformer initialization.
 
     Returns
     -------
-    object
+    any
         Initialized ColumnTransformer object.
 
     """
@@ -185,23 +193,28 @@ def _get_column_transformer(
 
 
 def _get_transformation(
-    data: Optional[pd.DataFrame], id: str, import_from: Optional[str]
-) -> Callable[..., Union[pd.DataFrame, None]]:
+    data: pd.DataFrame | None, id: str, import_from: str | None
+) -> callable:
     """Return a callable function that transforms a pandas dataframe.
 
     Parameters
     ----------
-    data : pd.DataFrame, optional
+    data : pd.DataFrame | None
         Pandas DataFrame to be transformed.
     id : str
         Identifier for the transformation to be applied to the data.
-    import_from : str, optional
+    import_from : str | None
         When id="custom", it is the path to the python function to be imported.
 
     Returns
     -------
     callable
         A callable function that transforms a pandas dataframe.
+
+    Raises
+    ------
+    ValueError
+        If the transformation function is not found.
 
     """
     if id == "custom":
@@ -218,44 +231,57 @@ def _get_transformation(
 
 
 def _apply_transformation(
-    data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    data: pd.DataFrame | dict[str, pd.DataFrame],
     id: str,
-    import_from: Optional[str] = None,
-    exclude: Optional[List[str]] = [],
-    include: Optional[List[str]] = [],
+    import_from: str | None = None,
+    exclude: list[str] = [],
+    include: list[str] = [],
     quiet: bool = False,
     pass_key_to_fn: bool = False,
-    **kwds: Any,
-) -> Union[Dict[str, Any], Any]:
-    """Apply transformation `id` to `data`.
+    pass_dict_to_fn: bool = False,
+    **kwds: any,
+) -> dict[str, pd.DataFrame] | pd.DataFrame:
+    """Apply transformation to data.
 
     Parameters
     ----------
-    data : pd.DataFrame or dict
+    data : pd.DataFrame | dict[str, pd.DataFrame]
         Input data to transform. Can be a single DataFrame or a dict of DataFrames.
     id : str
         Identifier of transformation to apply, passed to `_get_transformation`.
-    import_from : str, optional
+    import_from : str | None, optional
         String representing the import path of a custom transformation function.
-    exclude : list, optional
-        List of keys to exclude from transformation.
-    include : list, optional
-        List of keys to include in the transformation.
+        Default is None.
+    exclude : list[str], optional
+        List of keys to exclude from transformation. Default is None.
+    include : list[str], optional
+        List of keys to include in the transformation. Default is None.
     quiet : bool, optional
-        Flag to disable logger output.
+        If True, disable logger output. Default is False.
     pass_key_to_fn : bool, optional
-        Flag to pass the key value to the custom transformation function.
-    kwds : Any
+        If True, pass the key value to the custom transformation function.
+        Default is False.
+    pass_dict_to_fn : bool, optional
+        If True, pass the raw data dict to the transformation function.
+        Default is False.
+    **kwds : any
         Additional keyword arguments to pass to the transformation function.
 
     Returns
     -------
-    dict or any
+    dict[str, any] | any
         The transformed input data.
+
+    Raises
+    ------
+    Exception
+        If an exception occurs during transformation execution.
 
     """
     __LOGGER__.disabled = quiet
-    if isinstance(data, dict) and id != "combine":
+    # Always pass dict to combine function
+    pass_dict_to_fn = id == "combine"
+    if isinstance(data, dict) and not pass_dict_to_fn:
         __LOGGER__.debug("arg is dict")
         results_dict = {}
         it = tqdm(data.items(), disable=quiet, leave=False)
@@ -285,12 +311,13 @@ def _apply_transformation(
                 results_dict[key] = transformed_data
         it.set_description("all transformations applied")
         return results_dict
-    elif isinstance(data, dict) and id == "combine":
-        __LOGGER__.debug("Combining data")
-        return combine(data, include, exclude, **kwds)
     else:
         __LOGGER__.debug(f"applying transformation: {id}")
         fn = _get_transformation(data, id, import_from)
+
+        if pass_dict_to_fn:
+            kwds["include"] = include
+            kwds["exclude"] = exclude
         try:
             return fn(data, **kwds)
         except Exception as e:
@@ -303,8 +330,8 @@ def _apply_transformation(
 
 # %% public functions ##########################################################
 def split(
-    data: pd.DataFrame, by: str, left_split_key: str, right_split_key: str, **kwds: Any
-) -> Dict[str, Optional[pd.DataFrame]]:
+    data: pd.DataFrame, by: str, left_split_key: str, right_split_key: str, **kwds: any
+) -> dict[str, pd.DataFrame | None]:
     """Split data along index.
 
     Parameters
@@ -314,16 +341,21 @@ def split(
     by : str
         Type of split.
     left_split_key : str
-        Key for left split
+        Key for left split.
     right_split_key : str
-        Key for right split
-    kwds : Any
+        Key for right split.
+    **kwds : any
         Additional keyword arguments to pass to the splitting function.
 
     Returns
     -------
-    dict
+    dict[str, pd.DataFrame | None]
         Dictionary containing left and right split data.
+
+    Raises
+    ------
+    ValueError
+        If an invalid choice for split is provided.
 
     """
     if data is None:
@@ -341,28 +373,28 @@ def split(
 
 
 def combine(
-    data: Dict[str, pd.DataFrame],
-    include: List[str],
-    exclude: List[str],
+    data: dict[str, pd.DataFrame],
+    include: list[str],
+    exclude: list[str],
     new_key: str = "combined",
-) -> Union[Dict[str, pd.DataFrame], pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Concatenate multiple DataFrames.
 
     Parameters
     ----------
-    data : dict
+    data : dict[str, pd.DataFrame]
         Dictionary with data frames to concatenate.
-    include : list
+    include : list[str]
         Keys to include.
-    exclude : list
+    exclude : list[str]
         Keys to exclude.
-    new_key : str
-        New key for concatenated data.
+    new_key : str, optional
+        New key for concatenated data. Default is "combined".
 
     Returns
     -------
-    dict or pd.DataFrame
-        Dictionary with combined data or combined DataFrame.
+    pd.DataFrame | None
+        The combined DataFrame.
 
     """
     to_combine = []
@@ -384,22 +416,27 @@ def combine(
 
 
 def column_transformer_fit(
-    data: pd.DataFrame, dump_to_file: Optional[str] = None, **kwds: Any
-) -> Optional[pd.DataFrame]:
+    data: pd.DataFrame,
+    dump_to_file: str | None = None,
+    item: str | None = None,
+    **kwds: any,
+) -> pd.DataFrame | None:
     """Fit the data to the input.
 
     Parameters
     ----------
     data : pd.DataFrame
         Input data to fit the ColumnTransformer.
-    dump_to_file : str, optional
-        Filepath to write fitted object to.
-    kwds : dict
-        Additional keyword arguments to be passed to `_get_column_transformer`.
+    dump_to_file : str | None, optional
+        Filepath to write fitted object to. Default is None.
+    item : str | None, optional
+        Item identifier for foreach stages. Default is None.
+    **kwds : any
+        Additional keyword arguments passed to `_get_column_transformer`.
 
     Returns
     -------
-    pd.DataFrame
+    pd.DataFrame | None
         The input data unchanged.
 
     """
@@ -413,27 +450,28 @@ def column_transformer_fit(
             dirname = os.path.dirname(dump_to_file)
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
-            with open(dump_to_file, "wb+") as file:
+            path = parse_path(dump_to_file, item=item)[0]
+            with open(path, "wb+") as file:
                 pickle.dump(column_transfomer, file)
 
         return data
 
 
 def column_transformer_transform(
-    data: pd.DataFrame, **kwds: Any
-) -> Optional[pd.DataFrame]:
+    data: pd.DataFrame, **kwds: any
+) -> pd.DataFrame | None:
     """Apply the column transformer to the input data.
 
     Parameters
     ----------
     data : pd.DataFrame
         Input data to transform.
-    kwds : dict
+    **kwds : any
         Additional keyword arguments to pass to the column transformer.
 
     Returns
     -------
-    pd.DataFrame
+    pd.DataFrame | None
         Transformed data.
 
     """
@@ -448,24 +486,25 @@ def column_transformer_transform(
 
 
 def column_transformer_fit_transform(
-    data: pd.DataFrame, dump_to_file: Optional[str] = None, **kwds: Any
-) -> Optional[pd.DataFrame]:
-    """Fits and transform the input data.
+    data: pd.DataFrame, dump_to_file: str | None = None, **kwds: any
+) -> pd.DataFrame | None:
+    """Fit and transform the input data.
 
-    This function combines ..._fit and ..._transform.
+    This function combines column_transformer_fit and column_transformer_transform.
 
     Parameters
     ----------
     data : pd.DataFrame
         Input data to be transformed.
-    dump_to_file : str, optional
+    dump_to_file : str | None, optional
         If specified, saves the fitted column transformer to a file with the given name.
-    kwds : dict
-        Keyword arguments to be passed to the column transformer.
+        Default is None.
+    **kwds : any
+        Keyword arguments passed to the column transformer.
 
     Returns
     -------
-    pd.DataFrame
+    pd.DataFrame | None
         The transformed data.
 
     """
@@ -475,8 +514,10 @@ def column_transformer_fit_transform(
 
 
 def add_date_offset_to_column(
-    data: pd.DataFrame, column: str, **kwds: Any
-) -> Optional[pd.DataFrame]:
+    data: pd.DataFrame,
+    column: str,
+    **kwds: any,
+) -> pd.DataFrame | None:
     """Add a date offset to a date column in a pandas DataFrame.
 
     Parameters
@@ -485,12 +526,12 @@ def add_date_offset_to_column(
         The input pandas DataFrame.
     column : str
         The name of the date column to which the offset will be applied.
-    kwds : any
-        Additional arguments to be passed to pandas pd.offsets.DateOffset.
+    **kwds : any
+        Additional arguments passed to pandas pd.offsets.DateOffset.
 
     Returns
     -------
-    pd.DataFrame
+    pd.DataFrame | None
         The pandas DataFrame with the offset applied to the specified date column.
 
     """
@@ -500,28 +541,31 @@ def add_date_offset_to_column(
 
 
 def apply_transformations(
-    data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
-    transformations: List[Dict[str, Any]],
+    data: pd.DataFrame | dict[str, pd.DataFrame],
+    transformations: list[dict[str, any]],
     quiet: bool = False,
-) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    item: str | None = None,
+) -> dict[str, pd.DataFrame] | pd.DataFrame:
     """Apply a list of transformations to a DataFrame or dict of DataFrames.
 
     The main entrypoint for transformations substage.
 
     Parameters
     ----------
-    data : pd.DataFrame or dict
+    data : pd.DataFrame | dict[str, pd.DataFrame]
         The data to apply transformations to.
         Can be a DataFrame or a dict of DataFrames.
-    transformations : list
+    transformations : list[dict[str, any]]
         A list of transformation dictionaries, each specifying
         individual transformation to apply.
     quiet : bool, optional
         Whether to suppress the progress bar and logging output. Default is False.
+    item : str | None, optional
+        Item identifier for foreach stages. Default is None.
 
     Returns
     -------
-    pd.DataFrame or dict
+    pd.DataFrame | dict[str, pd.DataFrame]
         The transformed data.
 
     """
@@ -533,6 +577,8 @@ def apply_transformations(
         for kwds in it:
             desc = kwds.pop("description", kwds["id"])
             it.set_description(desc)
+            if kwds.pop("pass_item_to_fn", False):
+                kwds["item"] = item
             data = _apply_transformation(
                 data=data,
                 quiet=quiet,
