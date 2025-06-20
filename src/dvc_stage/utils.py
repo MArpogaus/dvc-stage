@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:18:39 (Marcel Arpogaus)
-# changed : 2025-05-27 16:47:41 (Marcel Arpogaus)
+# changed : 2025-06-20 09:42:07 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """utils module."""
@@ -23,7 +23,7 @@ __LOGGER__ = logging.getLogger(__name__)
 
 
 # %% functions #################################################################
-def _parse_path(path: str, params: Dict[str, Any]) -> Tuple[str, Set[str]]:
+def parse_path(path: str, **params: Dict[str, Any]) -> Tuple[str, Set[str]]:
     """Parse a path and replace ${PLACEHOLDERS} with values from dict.
 
     Parameters
@@ -42,6 +42,8 @@ def _parse_path(path: str, params: Dict[str, Any]) -> Tuple[str, Set[str]]:
     pattern = re.compile(r"\${([a-z]+)}")
     matches = set(re.findall(pattern, path))
     for g in matches:
+        if g == "item" and not params.get("item", None):
+            continue
         path = path.replace("${" + g + "}", params[g])
     return path, matches
 
@@ -77,7 +79,7 @@ def flatten_dict(
 
 
 def get_deps(
-    path: Union[str, List[str]], params: Dict[str, Any]
+    path: Union[str, List[str]], params: Dict[str, Any], item: str = None
 ) -> Tuple[List[str], Set[str]]:
     """Get dependencies given a path pattern and parameter values.
 
@@ -100,13 +102,17 @@ def get_deps(
     param_keys = set()
     if isinstance(path, list):
         for p in path:
-            rdeps, rparam_keys = get_deps(p, params)
+            rdeps, rparam_keys = get_deps(p, params, item)
             deps += rdeps
             param_keys |= rparam_keys
     else:
-        path, matches = _parse_path(path, params)
+        path, matches = parse_path(path, item=item, **params)
         param_keys |= matches
-        deps = glob.glob(path)
+        if "item" in matches and item is None:
+            deps = [path]
+            param_keys.remove("item")
+        else:
+            deps = glob.glob(path)
 
     deps = list(sorted(set(deps)))
 

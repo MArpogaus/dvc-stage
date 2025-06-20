@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:54:07 (Marcel Arpogaus)
-# changed : 2024-09-15 14:37:13 (Marcel Arpogaus)
+# changed : 2025-06-18 17:39:24 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining common transformations."""
@@ -21,7 +21,7 @@ import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from dvc_stage.utils import import_from_string, key_is_skipped
+from dvc_stage.utils import import_from_string, key_is_skipped, parse_path
 
 # %% globals ###################################################################
 __COLUMN_TRANSFORMER_CACHE__ = {}
@@ -384,7 +384,10 @@ def combine(
 
 
 def column_transformer_fit(
-    data: pd.DataFrame, dump_to_file: Optional[str] = None, **kwds: Any
+    data: pd.DataFrame,
+    dump_to_file: Optional[str] = None,
+    item: Union[str, None] = None,
+    **kwds: Any,
 ) -> Optional[pd.DataFrame]:
     """Fit the data to the input.
 
@@ -413,7 +416,8 @@ def column_transformer_fit(
             dirname = os.path.dirname(dump_to_file)
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
-            with open(dump_to_file, "wb+") as file:
+            path = parse_path(dump_to_file, item=item)[0]
+            with open(path, "wb+") as file:
                 pickle.dump(column_transfomer, file)
 
         return data
@@ -503,6 +507,7 @@ def apply_transformations(
     data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
     transformations: List[Dict[str, Any]],
     quiet: bool = False,
+    item: str = None,
 ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """Apply a list of transformations to a DataFrame or dict of DataFrames.
 
@@ -533,6 +538,8 @@ def apply_transformations(
         for kwds in it:
             desc = kwds.pop("description", kwds["id"])
             it.set_description(desc)
+            if kwds.pop("pass_item_to_fn", False):
+                kwds["item"] = item
             data = _apply_transformation(
                 data=data,
                 quiet=quiet,

@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:43:10 (Marcel Arpogaus)
-# changed : 2025-05-27 15:18:30 (Marcel Arpogaus)
+# changed : 2025-06-20 09:33:05 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """cli module."""
@@ -105,7 +105,7 @@ def _update_dvc_yaml(yes: bool) -> None:
             _update_dvc_stage(stage, yes)
 
 
-def _run_stage(stage: str, validate: bool = True) -> None:
+def _run_stage(stage: str, validate: bool = True, item: str = None) -> None:
     """Load, apply transformations, validate and write output.
 
     Parameters
@@ -120,9 +120,10 @@ def _run_stage(stage: str, validate: bool = True) -> None:
         validate_stage_definition(stage)
 
     stage_params, global_params = get_stage_params(stage)
-    __LOGGER__.debug(stage_params)
+    __LOGGER__.debug(f"{stage_params=}")
+    __LOGGER__.debug(f"{global_params=}")
 
-    deps, _ = get_deps(stage_params["load"].pop("path"), global_params)
+    deps, _ = get_deps(stage_params["load"].pop("path"), global_params, item)
 
     __LOGGER__.info("loading data")
     data = load_data(
@@ -138,12 +139,12 @@ def _run_stage(stage: str, validate: bool = True) -> None:
     if transformations is not None:
         assert write is not None, "No writer configured."
         __LOGGER__.info("applying transformations")
-        data = apply_transformations(data, transformations)
+        data = apply_transformations(data, transformations, item=item)
         __LOGGER__.info("all transformations applied")
 
     if validations is not None:
         __LOGGER__.info("applying validations")
-        apply_validations(data, validations)
+        apply_validations(data, validations, item=item)
         __LOGGER__.info("all validations passed")
 
     if write is not None:
@@ -165,20 +166,25 @@ def cli() -> None:
         help="Path to logfile",
     )
     parser.add_argument(
-        "--log-level", type=str, default="info", help="Provide logging level."
+        "--log-level",
+        type=str,
+        default="info",
+        help="Provide logging level.",
     )
 
     subparsers = parser.add_subparsers(title="subcommands", help="valid subcommands")
     run_parser = subparsers.add_parser("run", help="run given stage")
     run_parser.add_argument("stage", help="Name of DVC stage the script is used in")
-    validate_dvc_yaml_parser = run_parser.add_mutually_exclusive_group(
-        required=False,
-    )
-    validate_dvc_yaml_parser.add_argument(
+    run_parser.add_argument(
         "--skip-validation",
         dest="validate",
         action="store_false",
         help="do not validate stage definition in dvc.yaml",
+    )
+    run_parser.add_argument(
+        "--item",
+        type=str,
+        help="item of foreach stage",
     )
     run_parser.set_defaults(func=_run_stage)
 

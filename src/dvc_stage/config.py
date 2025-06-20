@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:48:10 (Marcel Arpogaus)
-# changed : 2025-05-27 15:18:13 (Marcel Arpogaus)
+# changed : 2025-06-20 08:33:37 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """config module."""
@@ -95,6 +95,9 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
         outs = get_outs(data, **write)
         config["outs"] = outs + stage_params.get("extra_outs", [])
 
+    if "foreach" in stage_params:
+        config["cmd"] = config["cmd"] + " --item ${item}"
+        config = {"foreach": stage_params["foreach"], "do": config}
     config = {"stages": {stage: config}}
 
     return config

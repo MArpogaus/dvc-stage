@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 14:05:05 (Marcel Arpogaus)
-# changed : 2025-05-19 11:12:16 (Marcel Arpogaus)
+# changed : 2025-06-20 08:52:20 (Marcel Arpogaus)
 
 
 # %% Description ###############################################################
@@ -227,7 +227,11 @@ def validate_pandera_schema(
     return True
 
 
-def apply_validations(data: any, validations: List[dict]) -> None:
+def apply_validations(
+    data: any,
+    validations: List[dict],
+    item: str = None,
+) -> None:
     """Apply validations to input data. Entrypoint for validation substage.
 
     Parameters
@@ -244,4 +248,6 @@ def apply_validations(data: any, validations: List[dict]) -> None:
     with logging_redirect_tqdm():
         for kwds in it:
             it.set_description(kwds.pop("description", kwds["id"]))
+            if kwds.pop("pass_item_to_fn", False):
+                kwds["item"] = item
             _apply_validation(data=data, **kwds)
