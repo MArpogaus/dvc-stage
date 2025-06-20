@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:18:39 (Marcel Arpogaus)
-# changed : 2025-06-20 09:42:07 (Marcel Arpogaus)
+# changed : 2025-06-20 11:16:03 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """utils module."""
@@ -39,7 +39,7 @@ def parse_path(path: str, **params: Dict[str, Any]) -> Tuple[str, Set[str]]:
         A tuple containing the parsed path string and a set of the matched parameters.
 
     """
-    pattern = re.compile(r"\${([a-z]+)}")
+    pattern = re.compile(r"\${([a-zA-Z_][a-zA-Z0-9_]*)}")
     matches = set(re.findall(pattern, path))
     for g in matches:
         if g == "item" and not params.get("item", None):
@@ -150,7 +150,7 @@ def get_outs(
     if isinstance(data, dict):
         __LOGGER__.debug("arg is dict")
         for k, v in data.items():
-            outs.append(path.format(key=k))
+            outs.append(parse_path(path, key=k)[0])
     else:
         __LOGGER__.debug(f"path: {path}")
         outs.append(path)

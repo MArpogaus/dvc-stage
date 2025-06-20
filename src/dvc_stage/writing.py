@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:56:17 (Marcel Arpogaus)
-# changed : 2025-06-18 16:30:57 (Marcel Arpogaus)
+# changed : 2025-06-20 11:16:19 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining data writing functions."""
@@ -18,7 +18,7 @@ import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from dvc_stage.utils import import_from_string
+from dvc_stage.utils import import_from_string, parse_path
 
 # %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
@@ -65,6 +65,7 @@ def write_data(
     format: str,
     path: str,
     import_from: Optional[str] = None,
+    item: Optional[str] = None,
     **kwds: Any,
 ) -> None:
     """Write data to a file. Main entrypoint for writing substage.
@@ -77,8 +78,10 @@ def write_data(
         The format of the output file.
     path : str
         The path to write the file to.
-    import_from : Optional[str], optional
+    import_from : str, optional
         The module path of a custom writing function, by default None.
+    item : str, optional
+        Item identifier for foreach stages (default None).
     kwds : Any
         Additional keyword arguments passed to the writing function.
 
@@ -92,7 +95,7 @@ def write_data(
         it = tqdm(data.items(), leave=False)
         with logging_redirect_tqdm():
             for k, v in it:
-                formatted_path = path.format(key=k)
+                formatted_path = parse_path(path, key=k, item=item)[0]
                 __LOGGER__.debug(f"writing df with key {k} to '{formatted_path}'")
                 it.set_description(f"writing df with key {k}")
                 write_data(

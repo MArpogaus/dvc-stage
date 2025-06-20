@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:43:10 (Marcel Arpogaus)
-# changed : 2025-06-20 09:33:05 (Marcel Arpogaus)
+# changed : 2025-06-20 11:17:01 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """cli module."""
@@ -155,6 +155,7 @@ def _run_stage(stage: str, validate: bool = True, item: str | None = None) -> No
         __LOGGER__.info("writing data")
         write_data(
             data=data,
+            item=item,
             **stage_params["write"],
         )
         __LOGGER__.info("all data written")
