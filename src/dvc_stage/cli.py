@@ -101,7 +101,9 @@ def _update_dvc_yaml(yes: bool) -> None:
     """
     dvc_yaml = load_dvc_yaml()
     for stage, definition in dvc_yaml["stages"].items():
-        if definition.get("cmd", "").startswith("dvc-stage"):
+        if definition is not None and definition.get(
+            "cmd", definition.get("do", {}).get("cmd", "")
+        ).startswith("dvc-stage"):
             _update_dvc_stage(stage, yes)
 
 
