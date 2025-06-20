@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:54:07 (Marcel Arpogaus)
-# changed : 2025-06-20 13:49:25 (Marcel Arpogaus)
+# changed : 2025-06-20 14:03:37 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining common transformations."""
@@ -230,6 +230,7 @@ def _apply_transformation(
     include: Optional[List[str]] = [],
     quiet: bool = False,
     pass_key_to_fn: bool = False,
+    pass_dict_to_fn: bool = False,
     **kwds: Any,
 ) -> Union[Dict[str, Any], Any]:
     """Apply transformation `id` to `data`.
@@ -247,9 +248,13 @@ def _apply_transformation(
     include : list, optional
         List of keys to include in the transformation.
     quiet : bool, optional
-        Flag to disable logger output.
+        If `True` disable logger output, default `False`.
     pass_key_to_fn : bool, optional
-        Flag to pass the key value to the custom transformation function.
+        If `True` pass the key value to the custom transformation function,
+        default `False`.
+    pass_dict_to_fn : bool, optional
+        If `True` pass the raw data dict to the transformation function,
+        default `False`.
     kwds : Any
         Additional keyword arguments to pass to the transformation function.
 
@@ -260,7 +265,9 @@ def _apply_transformation(
 
     """
     __LOGGER__.disabled = quiet
-    if isinstance(data, dict) and id != "combine":
+    # Always pass dict to combine function
+    pass_dict_to_fn = id == "combine"
+    if isinstance(data, dict) and not pass_dict_to_fn:
         __LOGGER__.debug("arg is dict")
         results_dict = {}
         it = tqdm(data.items(), disable=quiet, leave=False)
@@ -290,12 +297,13 @@ def _apply_transformation(
                 results_dict[key] = transformed_data
         it.set_description("all transformations applied")
         return results_dict
-    elif isinstance(data, dict) and id == "combine":
-        __LOGGER__.debug("Combining data")
-        return combine(data, include, exclude, **kwds)
     else:
         __LOGGER__.debug(f"applying transformation: {id}")
         fn = _get_transformation(data, id, import_from)
+
+        if pass_dict_to_fn:
+            kwds["include"] = include
+            kwds["exclude"] = exclude
         try:
             return fn(data, **kwds)
         except Exception as e:
