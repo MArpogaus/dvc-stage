@@ -66,9 +66,15 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
     dvc_params += list(param_keys)
 
     config = stage_params.get("extra_stage_fields", {})
+    dvc_stage_args = ""
+    for k, v in stage_params.get("dvc_stage_args", {}).items():
+        dvc_stage_args += f" --{k} {v}"
+    dvc_stage_run_args = ""
+    for k, v in stage_params.get("dvc_stage_run_args", {}).items():
+        dvc_stage_run_args += f" --{k} {v}"
     config.update(
         {
-            "cmd": f"dvc-stage run {stage}",
+            "cmd": f"dvc-stage{dvc_stage_args} run{dvc_stage_run_args} {stage}",
             "deps": deps + stage_params.get("extra_deps", []),
             "params": list(sorted(dvc_params)),
             "meta": {"dvc-stage-version": dvc_stage.__version__},
@@ -112,8 +118,6 @@ def stage_definition_is_valid(stage: str) -> bool:
     dvc_yaml = load_dvc_yaml()["stages"][stage]
     __LOGGER__.debug(f"dvc.yaml:\n{yaml.dump(dvc_yaml)}")
     config = get_stage_definition(stage)["stages"][stage]
-    if stage in dvc_yaml["cmd"]:
-        config["cmd"] = dvc_yaml["cmd"]
     __LOGGER__.debug(f"expected:\n{yaml.dump(config)}")
 
     return dvc_yaml == config

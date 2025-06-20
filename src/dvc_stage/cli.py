@@ -67,8 +67,6 @@ def _update_dvc_stage(stage: str, yes: bool) -> None:
         )
         dvc_yaml = load_dvc_yaml()
         config = get_stage_definition(stage)["stages"][stage]
-        if stage in dvc_yaml["stages"]:
-            config["cmd"] = dvc_yaml["stages"][stage]["cmd"]
 
         s1 = yaml.dump(dvc_yaml["stages"][stage]).splitlines()
         s2 = yaml.dump(config).splitlines()
