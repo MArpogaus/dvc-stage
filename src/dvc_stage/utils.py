@@ -14,7 +14,7 @@ import glob
 import importlib
 import logging
 import re
-from typing import Any, Callable, Dict, List, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 
@@ -79,7 +79,7 @@ def flatten_dict(
 
 
 def get_deps(
-    path: Union[str, List[str]], params: Dict[str, Any], item: str = None
+    path: Union[str, List[str]], params: Dict[str, Any], item: Optional[str] = None
 ) -> Tuple[List[str], Set[str]]:
     """Get dependencies given a path pattern and parameter values.
 
@@ -89,6 +89,8 @@ def get_deps(
         A string or list of strings representing file paths.
     params : Dict[str, Any]
         A dictionary containing parameter values to substitute in the `path` string.
+    item : str, optional
+        Item identifier for foreach stages (default None).
 
     Returns
     -------

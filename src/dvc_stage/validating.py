@@ -13,7 +13,7 @@
 # %% imports ###################################################################
 import inspect
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -230,7 +230,7 @@ def validate_pandera_schema(
 def apply_validations(
     data: any,
     validations: List[dict],
-    item: str = None,
+    item: Optional[str] = None,
 ) -> None:
     """Apply validations to input data. Entrypoint for validation substage.
 
@@ -240,6 +240,8 @@ def apply_validations(
         Input data.
     validations : List[dict]
         List of dictionaries containing validation parameters.
+    item : str, optional
+        Item identifier for foreach stages (default None).
 
     """
     __LOGGER__.debug("applying validations")

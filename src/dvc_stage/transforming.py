@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:54:07 (Marcel Arpogaus)
-# changed : 2025-06-18 17:39:24 (Marcel Arpogaus)
+# changed : 2025-06-20 11:14:02 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining common transformations."""
@@ -386,7 +386,7 @@ def combine(
 def column_transformer_fit(
     data: pd.DataFrame,
     dump_to_file: Optional[str] = None,
-    item: Union[str, None] = None,
+    item: Optional[str] = None,
     **kwds: Any,
 ) -> Optional[pd.DataFrame]:
     """Fit the data to the input.
@@ -397,6 +397,8 @@ def column_transformer_fit(
         Input data to fit the ColumnTransformer.
     dump_to_file : str, optional
         Filepath to write fitted object to.
+    item : str, optional
+        Item identifier for foreach stages (default None).
     kwds : dict
         Additional keyword arguments to be passed to `_get_column_transformer`.
 
@@ -507,7 +509,7 @@ def apply_transformations(
     data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
     transformations: List[Dict[str, Any]],
     quiet: bool = False,
-    item: str = None,
+    item: Optional[str] = None,
 ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """Apply a list of transformations to a DataFrame or dict of DataFrames.
 
@@ -523,6 +525,8 @@ def apply_transformations(
         individual transformation to apply.
     quiet : bool, optional
         Whether to suppress the progress bar and logging output. Default is False.
+    item : str, optional
+        Item identifier for foreach stages (default None).
 
     Returns
     -------

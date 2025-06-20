@@ -105,7 +105,7 @@ def _update_dvc_yaml(yes: bool) -> None:
             _update_dvc_stage(stage, yes)
 
 
-def _run_stage(stage: str, validate: bool = True, item: str = None) -> None:
+def _run_stage(stage: str, validate: bool = True, item: str | None = None) -> None:
     """Load, apply transformations, validate and write output.
 
     Parameters
@@ -114,6 +114,8 @@ def _run_stage(stage: str, validate: bool = True, item: str = None) -> None:
         The name of the DVC stage to run.
     validate : bool, optional
         Whether to validate the stage definition before running (default True).
+    item : str | None, optional
+        Item identifier for foreach stages (default None).
 
     """
     if validate:
