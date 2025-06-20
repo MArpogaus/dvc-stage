@@ -1,1 +1,8 @@
 /out.csv
+/timeseries_test.csv
+/timeseries_train.csv
+/dataset_a_input_processed.csv
+/dataset_b_input_processed.csv
+/dataset_c_input_processed.csv
+/combined_data.csv
+/labels.csv
