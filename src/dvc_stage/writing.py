@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:56:17 (Marcel Arpogaus)
-# changed : 2024-09-15 14:16:33 (Marcel Arpogaus)
+# changed : 2025-06-18 16:30:57 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining data writing functions."""
@@ -12,7 +12,7 @@
 # %% imports ###################################################################
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -104,40 +104,3 @@ def write_data(
         __LOGGER__.debug(f"saving data to {path} as {format}")
         fn = _get_writing_function(data, format, import_from)
         fn(data, path, **kwds)
-
-
-def get_outs(
-    data: Union[List, Dict, pd.DataFrame], path: str, **kwds: Any
-) -> List[str]:
-    """Get list of output paths based on input data.
-
-    Parameters
-    ----------
-    data : Union[List, Dict, pd.DataFrame]
-        Input data.
-    path : str
-        Output path template string.
-    kwds : Any
-        Additional keyword arguments.
-
-    Returns
-    -------
-    List[str]
-        List of output paths.
-
-    """
-    outs = []
-
-    if isinstance(data, list):
-        __LOGGER__.debug("data is list")
-        for i, d in enumerate(data):
-            outs.append(path.format(item=i))
-    elif isinstance(data, dict):
-        __LOGGER__.debug("arg is dict")
-        for k, v in data.items():
-            outs.append(path.format(key=k))
-    else:
-        __LOGGER__.debug(f"path: {path}")
-        outs.append(path)
-
-    return list(sorted(outs))

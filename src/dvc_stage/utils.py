@@ -16,6 +16,8 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
+import pandas as pd
+
 # %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
 
@@ -113,6 +115,39 @@ def get_deps(
     )
 
     return deps, param_keys
+
+
+def get_outs(
+    data: Union[List, Dict, pd.DataFrame], path: str, **kwds: Any
+) -> List[str]:
+    """Get list of output paths based on input data.
+
+    Parameters
+    ----------
+    data : Union[List, Dict, pd.DataFrame]
+        Input data.
+    path : str
+        Output path template string.
+    kwds : Any
+        Additional keyword arguments.
+
+    Returns
+    -------
+    List[str]
+        List of output paths.
+
+    """
+    outs = []
+
+    if isinstance(data, dict):
+        __LOGGER__.debug("arg is dict")
+        for k, v in data.items():
+            outs.append(path.format(key=k))
+    else:
+        __LOGGER__.debug(f"path: {path}")
+        outs.append(path)
+
+    return list(sorted(outs))
 
 
 def import_from_string(import_from: str) -> Callable:

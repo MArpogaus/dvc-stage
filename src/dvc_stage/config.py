@@ -19,8 +19,7 @@ import yaml
 import dvc_stage
 from dvc_stage.loading import load_data
 from dvc_stage.transforming import apply_transformations
-from dvc_stage.utils import flatten_dict, get_deps
-from dvc_stage.writing import get_outs
+from dvc_stage.utils import flatten_dict, get_deps, get_outs
 
 # %% globals ###################################################################
 __LOGGER__ = logging.getLogger(__name__)
