@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 14:05:05 (Marcel Arpogaus)
-# changed : 2025-06-20 11:14:50 (Marcel Arpogaus)
+# changed : 2025-06-20 14:07:45 (Marcel Arpogaus)
 
 
 # %% Description ###############################################################
@@ -70,6 +70,7 @@ def _apply_validation(
     include: List[str] = [],
     exclude: List[str] = [],
     pass_key_to_fn: bool = False,
+    pass_dict_to_fn: bool = False,
     **kwds: Dict[str, Any],
 ) -> None:
     """Apply a validation function to a given data.
@@ -98,8 +99,10 @@ def _apply_validation(
         List of keys to include in the validation. If empty, all keys will be included.
     exclude : List[str]
         List of keys to exclude from the validation.
-    pass_key_to_fn : bool
-        Flag to indicate if the key should be passed to the validation function.
+    pass_key_to_fn : bool, optional
+        If `True` pass the key value to the custom validation function, default `False`.
+    pass_dict_to_fn : bool, optional
+        If `True` pass the raw data dict to the validation function, default `False`.
     kwds : Dict[str, Any]
         Additional keyword arguments to be passed to the validation function.
 
@@ -111,7 +114,7 @@ def _apply_validation(
         If the validation output does not match the expected output.
 
     """
-    if isinstance(data, dict):
+    if isinstance(data, dict) and not pass_dict_to_fn:
         __LOGGER__.debug("arg is dict")
         it = tqdm(data.items(), leave=False)
         for key, df in it:
@@ -135,6 +138,10 @@ def _apply_validation(
         __LOGGER__.debug(f"applying validation: {id}")
         fn = _get_validation(id, data, import_from)
 
+        if pass_dict_to_fn:
+            kwds["include"] = include
+            kwds["exclude"] = exclude
+
         try:
             data = fn(data, **kwds)
         except Exception as e:
@@ -157,7 +164,7 @@ def _apply_validation(
             )
 
         assert reduced == expected, (
-            f"Validation '{id}' with reduction method '{reduction}'"
+            f"Validation '{id}' with reduction method '{reduction}' "
             f"evaluated to: {reduced}\n"
             f"Expected: {expected}"
         )
