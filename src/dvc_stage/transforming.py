@@ -4,7 +4,7 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:54:07 (Marcel Arpogaus)
-# changed : 2025-06-20 11:14:02 (Marcel Arpogaus)
+# changed : 2025-06-20 13:49:25 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining common transformations."""
@@ -59,23 +59,24 @@ def _date_time_split(
     data.set_index(date_time_col, inplace=True)
 
     # Reserve some data for testing
-    periods = len(pd.period_range(start_point, end_date, freq=freq))
-    split_point = start_point + int(np.round(size * periods)) * pd.offsets.MonthBegin()
+    period_range = pd.period_range(start_point, end_date, freq=freq)
+    periods = len(period_range)
+    split_point = int(np.round(size * periods))
+    left_periods = period_range[:split_point]
+    right_periods = period_range[split_point:]
+    __LOGGER__.debug(f"left split from {left_periods.min()} till {left_periods.max()}")
     __LOGGER__.debug(
-        f"left split from {start_point} till {split_point - pd.offsets.Minute(30)}"
+        f"right split from {right_periods.min()} till {right_periods.max()}"
     )
-    __LOGGER__.debug(f"right split from {split_point} till {end_date}")
 
-    left_split_str = str(split_point - pd.offsets.Minute(30))
-    right_split_str = str(split_point)
-    left_data = data.loc[:left_split_str].reset_index()
-    right_data = data.loc[right_split_str:].reset_index()
+    left_data = data.loc[: str(left_periods.max())].reset_index()
+    right_data = data.loc[str(right_periods.min()) :].reset_index()
 
     return left_data, right_data
 
 
 def _id_split(
-    data: pd.DataFrame, size: float, seed: int, id_col: str
+    data: pd.DataFrame, size: float, seed: int, id_col: Optional[str] = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Split data on a random set of ids.
 
@@ -87,8 +88,8 @@ def _id_split(
         Amount of random ids in the left split.
     seed : int
         Seed used for id shuffling.
-    id_col : str
-        Column containing id information.
+    id_col : str, optional
+        Column containing id information (default None).
 
     Returns
     -------
@@ -97,10 +98,14 @@ def _id_split(
 
     """
     np.random.seed(seed)
-    ids = list(sorted(data[id_col].unique()))
-    np.random.shuffle(ids)
-    ids = ids[: int(size * len(ids))]
-    mask = data[id_col].isin(ids)
+    if id_col:
+        ids = data[id_col]
+    else:
+        ids = data.index
+    unique_ids = list(sorted(ids.unique()))
+    np.random.shuffle(unique_ids)
+    selected_ids = unique_ids[: int(size * len(unique_ids))]
+    mask = ids.isin(selected_ids)
     return data[mask], data[~mask]
 
 
@@ -481,7 +486,9 @@ def column_transformer_fit_transform(
 
 
 def add_date_offset_to_column(
-    data: pd.DataFrame, column: str, **kwds: Any
+    data: pd.DataFrame,
+    column: str,
+    **kwds: Any,
 ) -> Optional[pd.DataFrame]:
     """Add a date offset to a date column in a pandas DataFrame.
 
