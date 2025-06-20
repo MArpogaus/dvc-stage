@@ -4,14 +4,15 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:48:10 (Marcel Arpogaus)
-# changed : 2025-06-20 08:33:37 (Marcel Arpogaus)
+# changed : 2025-06-20 14:56:17 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """config module."""
 
 # %% imports ###################################################################
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, Tuple
 
 import dvc.api
 import yaml
@@ -26,12 +27,12 @@ __LOGGER__ = logging.getLogger(__name__)
 
 
 # %% functions #################################################################
-def load_dvc_yaml() -> Dict[str, Any]:
+def load_dvc_yaml() -> dict[str, any]:
     """Load and return the dvc.yaml file as a dictionary.
 
     Returns
     -------
-    dict
+    dict[str, any]
         The contents of dvc.yaml file.
 
     """
@@ -42,7 +43,7 @@ def load_dvc_yaml() -> Dict[str, Any]:
     return dvc_yaml
 
 
-def get_stage_definition(stage: str) -> Dict[str, Any]:
+def get_stage_definition(stage: str) -> dict[str, any]:
     """Generate a dvc stage definition dictionary based on the given stage name.
 
     Parameters
@@ -52,7 +53,7 @@ def get_stage_definition(stage: str) -> Dict[str, Any]:
 
     Returns
     -------
-    dict
+    dict[str, any]
         The dvc stage definition dictionary.
 
     """
@@ -144,7 +145,7 @@ def validate_stage_definition(stage: str) -> None:
 
 def get_stage_params(
     stage: str, all: bool = False
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> tuple[dict[str, any], dict[str, any]]:
     """Retrieve and return the stage parameters and global parameters as a tuple.
 
     Parameters
@@ -152,11 +153,11 @@ def get_stage_params(
     stage : str
         The name of the dvc stage.
     all : bool, optional
-        If True, retrieve all stages' parameters. Defaults to False.
+        If True, retrieve all stages' parameters. Default is False.
 
     Returns
     -------
-    tuple
+    tuple[dict[str, any], dict[str, any]]
         A tuple (stage_params, global_params) containing the
         stage parameters and global parameters as dictionaries.
 

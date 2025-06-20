@@ -4,15 +4,16 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:56:17 (Marcel Arpogaus)
-# changed : 2025-06-20 11:16:19 (Marcel Arpogaus)
+# changed : 2025-06-20 14:56:28 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """Module defining data writing functions."""
 
 # %% imports ###################################################################
+from __future__ import annotations
+
 import logging
 import os
-from typing import Any, Callable, Dict, Optional, Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -25,23 +26,21 @@ __LOGGER__ = logging.getLogger(__name__)
 
 
 # %% private functions #########################################################
-def _get_writing_function(
-    data: Any, format: str, import_from: Optional[str]
-) -> Callable:
+def _get_writing_function(data: any, format: str, import_from: str | None) -> callable:
     """Return a writing function for a given data format.
 
     Parameters
     ----------
-    data : Any
+    data : any
         The data to be written.
     format : str
         The format to write the data in.
-    import_from : Optional[str]
-        The module path for the custom writing function (default: None).
+    import_from : str | None
+        The module path for the custom writing function. Default is None.
 
     Returns
     -------
-    Callable
+    callable
         The writing function.
 
     Raises
@@ -61,28 +60,28 @@ def _get_writing_function(
 
 # %% public functions ##########################################################
 def write_data(
-    data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    data: pd.DataFrame | dict[str, pd.DataFrame],
     format: str,
     path: str,
-    import_from: Optional[str] = None,
-    item: Optional[str] = None,
-    **kwds: Any,
+    import_from: str | None = None,
+    item: str | None = None,
+    **kwds: any,
 ) -> None:
     """Write data to a file. Main entrypoint for writing substage.
 
     Parameters
     ----------
-    data : Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+    data : pd.DataFrame | dict[str, pd.DataFrame]
         The data to be written.
     format : str
         The format of the output file.
     path : str
         The path to write the file to.
-    import_from : str, optional
-        The module path of a custom writing function, by default None.
-    item : str, optional
-        Item identifier for foreach stages (default None).
-    kwds : Any
+    import_from : str | None, optional
+        The module path of a custom writing function. Default is None.
+    item : str | None, optional
+        Item identifier for foreach stages. Default is None.
+    **kwds : any
         Additional keyword arguments passed to the writing function.
 
     """

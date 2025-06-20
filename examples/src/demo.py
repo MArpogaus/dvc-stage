@@ -1,6 +1,6 @@
-"""Demonstation module."""
+"""Demonstration module."""
 
-from typing import Dict, List, Union
+from __future__ import annotations
 
 import pandas as pd
 from pandera import Check, Column, DataFrameSchema, Index
@@ -19,14 +19,14 @@ def isNotNone(data):
     return data is not None
 
 
-def normalize_data(data: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
+def normalize_data(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     """Normalize specified columns using min-max scaling.
 
     Parameters
     ----------
     data : pd.DataFrame
         Input dataframe to normalize.
-    columns : List[str]
+    columns : list[str]
         List of column names to normalize.
 
     Returns
@@ -50,16 +50,16 @@ def normalize_data(data: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
 
 
 def check_data_quality(
-    data: Union[pd.DataFrame, Dict[str, pd.DataFrame]], min_rows: int = 10
+    data: pd.DataFrame | dict[str, pd.DataFrame], min_rows: int = 10
 ) -> bool:
     """Check if data meets minimum quality requirements.
 
     Parameters
     ----------
-    data : pd.DataFrame or Dict[str, pd.DataFrame]
+    data : pd.DataFrame | dict[str, pd.DataFrame]
         Input data to validate.
     min_rows : int, optional
-        Minimum number of rows required (default 10).
+        Minimum number of rows required. Default is 10.
 
     Returns
     -------
@@ -77,7 +77,7 @@ def check_data_quality(
 
 
 def validate_split_ratio(
-    data: Dict[str, pd.DataFrame],
+    data: dict[str, pd.DataFrame],
     expected_ratio: float = 0.8,
     tolerance: float = 0.05,
     **_: dict,
@@ -86,12 +86,14 @@ def validate_split_ratio(
 
     Parameters
     ----------
-    data : Dict[str, pd.DataFrame]
+    data : dict[str, pd.DataFrame]
         Dictionary containing 'train' and 'test' dataframes.
     expected_ratio : float, optional
-        Expected ratio of train data (default 0.8).
+        Expected ratio of train data. Default is 0.8.
     tolerance : float, optional
-        Acceptable tolerance for ratio (default 0.05).
+        Acceptable tolerance for ratio. Default is 0.05.
+    **_ : dict
+        Additional unused keyword arguments.
 
     Returns
     -------

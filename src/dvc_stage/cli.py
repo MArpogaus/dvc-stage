@@ -4,12 +4,14 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:43:10 (Marcel Arpogaus)
-# changed : 2025-06-20 11:17:01 (Marcel Arpogaus)
+# changed : 2025-06-20 14:56:00 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """cli module."""
 
 # %% imports ###################################################################
+from __future__ import annotations
+
 import argparse
 import difflib
 import logging
@@ -115,9 +117,9 @@ def _run_stage(stage: str, validate: bool = True, item: str | None = None) -> No
     stage : str
         The name of the DVC stage to run.
     validate : bool, optional
-        Whether to validate the stage definition before running (default True).
+        Whether to validate the stage definition before running. Default is True.
     item : str | None, optional
-        Item identifier for foreach stages (default None).
+        Item identifier for foreach stages. Default is None.
 
     """
     if validate:

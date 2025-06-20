@@ -4,16 +4,17 @@
 # author  : Marcel Arpogaus <znepry.necbtnhf@tznvy.pbz>
 #
 # created : 2024-09-15 13:51:13 (Marcel Arpogaus)
-# changed : 2025-05-27 15:16:24 (Marcel Arpogaus)
+# changed : 2025-06-20 14:55:43 (Marcel Arpogaus)
 
 # %% Description ###############################################################
 """loading module."""
 
 # %% imports ###################################################################
+from __future__ import annotations
+
 import fnmatch
 import logging
 import os
-from typing import Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -40,6 +41,11 @@ def _get_loading_function(format: str, import_from: str) -> callable:
     -------
     callable
         The loading function for the given format.
+
+    Raises
+    ------
+    ValueError
+        If the loading function for the format is not found.
 
     """
     if format == "custom":
@@ -82,13 +88,13 @@ def _get_data_key(path: str, key_map: dict) -> str:
 # %% public functions ##########################################################
 def load_data(
     format: str,
-    paths: Union[str, list],
-    key_map: dict = None,
-    import_from: str = None,
+    paths: str | list,
+    key_map: dict | None = None,
+    import_from: str | None = None,
     quiet: bool = False,
-    return_keys: list = False,
-    **kwds: object,
-) -> Union[object, dict]:
+    return_keys: list | None = None,
+    **kwds: any,
+) -> object | dict:
     """Load data from one or more files. Executes substage "loading".
 
     Parameters
@@ -98,23 +104,22 @@ def load_data(
         and a dict without data is returned for tracing.
     paths : str or list
         The file path(s) to load the data from.
-    key_map : dict, optional
-        A mapping from filename patterns to data keys.
-    import_from : str, optional
+    key_map : dict | None, optional
+        A mapping from filename patterns to data keys. Default is None.
+    import_from : str | None, optional
         Module name or path where the custom loading function is located.
+        Default is None.
     quiet : bool, optional
-        Whether to disable logging messages or not.
-    return_keys: list
-        Provide keys in case custom loading functions return s a dict containing
-        multiple DataFrames.
-    **kwds : object
+        Whether to disable logging messages or not. Default is False.
+    return_keys : list | None, optional
+        Provide keys in case custom loading functions return a dict containing
+        multiple DataFrames. Default is None.
+    **kwds : any
         Additional keyword arguments to pass to the loading function.
 
     Returns
     -------
-    object or dict
-        The loaded data, either as a single object or a dictionary of objects.
-    object or dict
+    object | dict
         The loaded data, either as a single object or a dictionary of objects.
 
     """
