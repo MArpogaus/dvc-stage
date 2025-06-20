@@ -1,3 +1,26 @@
+## v1.1.0 (2025-06-20)
+
+### Feat
+
+- allow transformation functions to process the raw data dict
+- allow validation functions to process the raw data dict
+- add support for simple foreach stages
+- add dvc-stage and run command cli args as configuration option
+- allow regexp for in and exclude fields
+
+### Fix
+
+- correct dvc.yaml format
+- split transforms now work as expected
+- use parse_path for variable expansion within paths
+- detect dvc-stage definitions with foreach loop
+- keep data paths as list to ensure keys are used
+- use default logging format to include module name
+
+### Refactor
+
+- move get_outs into utils
+
 ## v1.0.1 (2025-05-19)
 
 ### Feat
